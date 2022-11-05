@@ -13,3 +13,5 @@ target_include_directories(Lorina
         extern/lorina/include
         extern/lorina/lib/fmt
 )
+
+add_subdirectory(test)
