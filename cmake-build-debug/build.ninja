@@ -77,7 +77,7 @@ build cmake_object_order_depends_target_benchstat: phony || test/CMakeFiles/benc
 build test/CMakeFiles/benchstat.dir/bench.cpp.o: CXX_COMPILER__benchstat_Debug /Users/fake.andrey/CLionProjects/basicviz/test/bench.cpp || cmake_object_order_depends_target_benchstat
   DEP_FILE = test/CMakeFiles/benchstat.dir/bench.cpp.o.d
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk -std=gnu++17
-  INCLUDES = -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/lib/fmt
+  INCLUDES = -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/lib/fmt -isystem /opt/homebrew/include/SDL2
   OBJECT_DIR = test/CMakeFiles/benchstat.dir
   OBJECT_FILE_DIR = test/CMakeFiles/benchstat.dir
 
@@ -89,8 +89,10 @@ build test/CMakeFiles/benchstat.dir/bench.cpp.o: CXX_COMPILER__benchstat_Debug /
 #############################################
 # Link the executable test/benchstat
 
-build test/benchstat: CXX_EXECUTABLE_LINKER__benchstat_Debug test/CMakeFiles/benchstat.dir/bench.cpp.o
+build test/benchstat: CXX_EXECUTABLE_LINKER__benchstat_Debug test/CMakeFiles/benchstat.dir/bench.cpp.o | /opt/homebrew/lib/libSDL2.dylib /opt/homebrew/Cellar/sdl2_ttf/2.20.1/lib/libSDL2_ttf.dylib
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk
+  LINK_LIBRARIES = -Wl,-rpath,/opt/homebrew/lib  /opt/homebrew/lib/libSDL2.dylib  /opt/homebrew/Cellar/sdl2_ttf/2.20.1/lib/libSDL2_ttf.dylib
+  LINK_PATH = -L/opt/homebrew/lib
   OBJECT_DIR = test/CMakeFiles/benchstat.dir
   POST_BUILD = :
   PRE_LINK = :

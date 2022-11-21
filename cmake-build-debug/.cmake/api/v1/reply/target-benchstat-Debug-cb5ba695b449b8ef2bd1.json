@@ -31,6 +31,12 @@
 			{
 				"command" : 1,
 				"file" : 0,
+				"line" : 16,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
 				"line" : 4,
 				"parent" : 0
 			}
@@ -51,12 +57,17 @@
 			"includes" : 
 			[
 				{
-					"backtrace" : 2,
+					"backtrace" : 3,
 					"path" : "/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include"
 				},
 				{
-					"backtrace" : 2,
+					"backtrace" : 3,
 					"path" : "/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/lib/fmt"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/opt/homebrew/include/SDL2"
 				}
 			],
 			"language" : "CXX",
@@ -86,6 +97,25 @@
 			{
 				"fragment" : "",
 				"role" : "flags"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-L/opt/homebrew/lib",
+				"role" : "libraryPath"
+			},
+			{
+				"fragment" : "-Wl,-rpath,/opt/homebrew/lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/opt/homebrew/lib/libSDL2.dylib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/opt/homebrew/Cellar/sdl2_ttf/2.20.1/lib/libSDL2_ttf.dylib",
+				"role" : "libraries"
 			}
 		],
 		"language" : "CXX"

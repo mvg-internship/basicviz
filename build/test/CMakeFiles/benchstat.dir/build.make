@@ -92,6 +92,8 @@ benchstat_EXTERNAL_OBJECTS =
 
 test/benchstat: test/CMakeFiles/benchstat.dir/bench.cpp.o
 test/benchstat: test/CMakeFiles/benchstat.dir/build.make
+test/benchstat: /opt/homebrew/lib/libSDL2.dylib
+test/benchstat: /opt/homebrew/Cellar/sdl2_ttf/2.20.1/lib/libSDL2_ttf.dylib
 test/benchstat: test/CMakeFiles/benchstat.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/fake.andrey/CLionProjects/basicviz/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable benchstat"
 	cd /Users/fake.andrey/CLionProjects/basicviz/build/test && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/benchstat.dir/link.txt --verbose=$(VERBOSE)
