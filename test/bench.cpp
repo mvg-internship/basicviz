@@ -101,6 +101,7 @@ main(int argc, char *argv[]) {
     TTF_Init();
 
     bench_statistics stats;
+    bench_reader Stats;
     for (int i = 1; i < argc; ++i) {
         std::ifstream ifs(argv[i]);
 
@@ -109,10 +110,12 @@ main(int argc, char *argv[]) {
         if (result == return_code::success) {
             dump_statistics(stdout, stats);
         }
-
     }
+
     SDL_Rect inputs[stats.number_of_inputs];
     SDL_Rect outputs[stats.number_of_inputs];
+    SDL_Rect ddfs[stats.number_of_dffs];
+    SDL_Rect lines[stats.number_of_lines];
 
     // Create window
     SDL_Window *window = SDL_CreateWindow("SDL2_ttf sample",
@@ -133,8 +136,8 @@ main(int argc, char *argv[]) {
 
             for (int i = 0; i < stats.number_of_inputs; ++i) {
                 // Dimensions of the inputs
-                inputs[i].w = 50;
-                inputs[i].h = 50;
+                inputs[i].w = 60;
+                inputs[i].h = 40;
                 // Location of the rect
                 inputs[i].x = 10;
                 inputs[i].y = SCREEN_HEIGHT/stats.number_of_inputs - inputs[i].h*stats.number_of_inputs/2 + (inputs[i].h + 10) * i;
@@ -147,17 +150,45 @@ main(int argc, char *argv[]) {
 
             for (int i = 0; i < stats.number_of_outputs; ++i) {
                 // Dimensions of the outputs
-                outputs[i].w = 100;
-                outputs[i].h = 75;
+                outputs[i].w = 60;
+                outputs[i].h = 40;
                 // Location of the rect
                 outputs[i].x = SCREEN_WIDTH-outputs[i].w - 10;
-                outputs[i].y = 50 + (outputs[i].h + 10) * i;
+//                outputs[i].y = 50 + (outputs[i].h + 10) * i;
+                outputs[i].y = SCREEN_HEIGHT/stats.number_of_inputs - outputs[i].h*stats.number_of_inputs/2 + (outputs[i].h + 10) * i;
+
+                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
+                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
+
+            }
+
+            for (int i = 0; i < stats.number_of_dffs; ++i) {
+                // Dimensions of the inputs
+                ddfs[i].w = 60;
+                ddfs[i].h = 40;
+                // Location of the rect
+                ddfs[i].x = SCREEN_WIDTH/2;
+                ddfs[i].y = SCREEN_HEIGHT/stats.number_of_dffs - ddfs[i].h*stats.number_of_dffs/2 + (ddfs[i].h + 10) * i;
 
 
                 SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
                 SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
 
             }
+
+//            for (int i = 0; i < stats.number; ++i) {
+//                // Dimensions of the inputs
+//                inputs[i].w = 60;
+//                inputs[i].h = 40;
+//                // Location of the rect
+//                inputs[i].x = 10;
+//                inputs[i].y = SCREEN_HEIGHT/stats.number_of_inputs - inputs[i].h*stats.number_of_inputs/2 + (inputs[i].h + 10) * i;
+//
+//
+//                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
+//                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
+//
+//            }
 
             // Event loop exit flag
             bool quit = false;
@@ -190,7 +221,9 @@ main(int argc, char *argv[]) {
                 for (int i = 0; i < stats.number_of_outputs; ++i) {
                     SDL_RenderFillRect(renderer, &outputs[i]);
                 }
-
+                for (int i = 0; i < stats.number_of_dffs; ++i) {
+                    SDL_RenderFillRect(renderer, &ddfs[i]);
+                }
                 // Update screen
                 SDL_RenderPresent(renderer);
             }
