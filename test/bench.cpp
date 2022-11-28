@@ -1,4 +1,5 @@
 #include <lorina/bench.hpp>
+#include <lorina/lorina.hpp>
 #include <cstdio>
 #include <fstream>
 #include <string>
@@ -32,6 +33,7 @@ struct bench_statistics {
 
 class bench_statistics_reader : public bench_reader {
 public:
+
     explicit bench_statistics_reader(bench_statistics &stats)
             : _stats(stats) {
     }
@@ -72,6 +74,41 @@ public:
     mutable std::vector<std::tuple<std::vector<std::string>, std::string, std::string>> gate_lines;
 }; /* bench_statistics_reader */
 
+class bench_pretty_printer : public bench_reader
+{
+public:
+    /*! \brief Constructor of the BENCH pretty printer.
+     *
+     * \param os Output stream
+     */
+    bench_pretty_printer( std::ostream& os = std::cout )
+            : _os( os )
+    {
+    }
+
+    virtual void on_input( const std::string& name ) const override
+    {
+        _os << fmt::format( "INPUT({0})", name ) << std::endl;
+    }
+
+    virtual void on_output( const std::string& name ) const override
+    {
+        _os << fmt::format( "OUTPUT({0})", name ) << std::endl;
+    }
+
+    virtual void on_gate( const std::vector<std::string>& inputs, const std::string& output, const std::string& type ) const override
+    {
+        _os << fmt::format( "{0} = {1}({2})", output, type, detail::join( inputs, "," ) ) << std::endl;
+    }
+
+    virtual void on_assign( const std::string& input, const std::string& output ) const override
+    {
+        _os << fmt::format( "{0} = {1}", output, input ) << std::endl;
+    }
+
+    std::ostream& _os; /*!< Output stream */
+}; /* bench_pretty_printer */
+
 static void
 dump_statistics(FILE *f, const bench_statistics &st) {
     fprintf(f, "inputs: %u, outputs: %u, num ddfs: %u, num lines: %u\n",
@@ -83,100 +120,72 @@ dump_statistics(FILE *f, const bench_statistics &st) {
 
 int
 main(int argc, char *argv[]) {
-#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
-    // Disable compositor bypass
-    if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"))
-    {
-        printf("SDL can not disable compositor bypass!\n");
-        return 0;
-    }
-#endif
-    // Initialize SDL2
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        printf("SDL2 could not be initialized!\n"
-               "SDL2 Error: %s\n", SDL_GetError());
-        return 0;
-    }
-    // Initialize SDL2_ttf
-    TTF_Init();
+//#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
+//    // Disable compositor bypass
+//    if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"))
+//    {
+//        printf("SDL can not disable compositor bypass!\n");
+//        return 0;
+//    }
+//#endif
+//    // Initialize SDL2
+//    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+//        printf("SDL2 could not be initialized!\n"
+//               "SDL2 Error: %s\n", SDL_GetError());
+//        return 0;
+//    }
+//    // Initialize SDL2_ttf
+//    TTF_Init();
 
     bench_statistics stats;
-    bench_reader Stats;
+    bench_statistics_reader reader(stats);
+
     for (int i = 1; i < argc; ++i) {
         std::ifstream ifs(argv[i]);
 
-        bench_statistics_reader reader(stats);
         auto result = read_bench(ifs, reader);
         if (result == return_code::success) {
             dump_statistics(stdout, stats);
         }
+
     }
 
-    SDL_Rect inputs[stats.number_of_inputs];
-    SDL_Rect outputs[stats.number_of_inputs];
-    SDL_Rect ddfs[stats.number_of_dffs];
-    SDL_Rect lines[stats.number_of_lines];
 
-    // Create window
-    SDL_Window *window = SDL_CreateWindow("SDL2_ttf sample",
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          SCREEN_WIDTH, SCREEN_HEIGHT,
-                                          SDL_WINDOW_SHOWN);
-    if (!window) {
-        printf("Window could not be created!\n"
-               "SDL_Error: %s\n", SDL_GetError());
-    } else {
-        // Create renderer
-        SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-        if (!renderer) {
-            printf("Renderer could not be created!\n"
-                   "SDL_Error: %s\n", SDL_GetError());
-        } else {
-
-            for (int i = 0; i < stats.number_of_inputs; ++i) {
-                // Dimensions of the inputs
-                inputs[i].w = 60;
-                inputs[i].h = 40;
-                // Location of the rect
-                inputs[i].x = 10;
-                inputs[i].y = SCREEN_HEIGHT/stats.number_of_inputs - inputs[i].h*stats.number_of_inputs/2 + (inputs[i].h + 10) * i;
+    const auto &gate_lines = reader.gate_lines;
+    std::cout << "gate lines size --  " << gate_lines.size() << std::endl;
+    std::cout << "gate lines data --  " << gate_lines.data() << std::endl;
+    // "left" == "type" ("right") - struct of objects in .bench file
+    for (int i=0; i<stats.number_of_lines; ++i){
+        std::cout << "------------------------line" << i << "------------------------" << std::endl;
+        std::cout << "left -- " << std::get<1>(gate_lines[i])[0] << std::get<1>(gate_lines[i])[1] << std::get<1>(gate_lines[i])[2]<< std::endl;
+        std::cout << "type -- " << std::get<2>(gate_lines[i])[0] << std::get<2>(gate_lines[i])[1] << std::get<2>(gate_lines[i])[2]<< std::endl;
+        std::cout << "right -- " << std::get<0>(gate_lines[i])[0]<< " " << std::get<0>(gate_lines[i])[1] << " " << std::get<0>(gate_lines[i])[2]<< std::endl;
+    }
 
 
-                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
-                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
-
-            }
-
-            for (int i = 0; i < stats.number_of_outputs; ++i) {
-                // Dimensions of the outputs
-                outputs[i].w = 60;
-                outputs[i].h = 40;
-                // Location of the rect
-                outputs[i].x = SCREEN_WIDTH-outputs[i].w - 10;
-//                outputs[i].y = 50 + (outputs[i].h + 10) * i;
-                outputs[i].y = SCREEN_HEIGHT/stats.number_of_inputs - outputs[i].h*stats.number_of_inputs/2 + (outputs[i].h + 10) * i;
-
-                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
-                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
-
-            }
-
-            for (int i = 0; i < stats.number_of_dffs; ++i) {
-                // Dimensions of the inputs
-                ddfs[i].w = 60;
-                ddfs[i].h = 40;
-                // Location of the rect
-                ddfs[i].x = SCREEN_WIDTH/2;
-                ddfs[i].y = SCREEN_HEIGHT/stats.number_of_dffs - ddfs[i].h*stats.number_of_dffs/2 + (ddfs[i].h + 10) * i;
-
-
-                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
-                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
-
-            }
-
-//            for (int i = 0; i < stats.number; ++i) {
+//    SDL_Rect inputs[stats.number_of_inputs];
+//    SDL_Rect outputs[stats.number_of_inputs];
+//    SDL_Rect ddfs[stats.number_of_dffs];
+//    SDL_Rect lines[stats.number_of_lines];
+//
+//    // Create window
+//    SDL_Window *window = SDL_CreateWindow("SDL2_ttf sample",
+//                                          SDL_WINDOWPOS_UNDEFINED,
+//                                          SDL_WINDOWPOS_UNDEFINED,
+//                                          SCREEN_WIDTH, SCREEN_HEIGHT,
+//                                          SDL_WINDOW_SHOWN);
+//    if (!window) {
+//        printf("Window could not be created!\n"
+//               "SDL_Error: %s\n", SDL_GetError());
+//    } else {
+//        // Create renderer
+//        SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+//        if (!renderer) {
+//            printf("Renderer could not be created!\n"
+//                   "SDL_Error: %s\n", SDL_GetError());
+//        } else {
+//
+//            for (int i = 0; i < stats.number_of_inputs; ++i) {
 //                // Dimensions of the inputs
 //                inputs[i].w = 60;
 //                inputs[i].h = 40;
@@ -189,58 +198,87 @@ main(int argc, char *argv[]) {
 //                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
 //
 //            }
-
-            // Event loop exit flag
-            bool quit = false;
-
-            // Event loop
-            while (!quit) {
-                SDL_Event e;
-
-                // Wait indefinitely for the next available event
-                SDL_WaitEvent(&e);
-
-                // User requests quit
-                if (e.type == SDL_QUIT) {
-                    quit = true;
-                }
-
-                // Initialize renderer color white for the background
-                SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-
-                // Clear screen
-                SDL_RenderClear(renderer);
-
-                // Set renderer color red to draw the square
-                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
-
-                // Draw filled square
-                for (int i = 0; i < stats.number_of_inputs; ++i) {
-                    SDL_RenderFillRect(renderer, &inputs[i]);
-                }
-                for (int i = 0; i < stats.number_of_outputs; ++i) {
-                    SDL_RenderFillRect(renderer, &outputs[i]);
-                }
-                for (int i = 0; i < stats.number_of_dffs; ++i) {
-                    SDL_RenderFillRect(renderer, &ddfs[i]);
-                }
-                // Update screen
-                SDL_RenderPresent(renderer);
-            }
-
-            // Destroy renderer
-            SDL_DestroyRenderer(renderer);
-
-            // Destroy window
-            SDL_DestroyWindow(window);
-        }
-
-        // Quit SDL2_ttf
-        TTF_Quit();
-
-        // Quit SDL
-        SDL_Quit();
-
-    }
-    return 0;
+//
+//            for (int i = 0; i < stats.number_of_outputs; ++i) {
+//                // Dimensions of the outputs
+//                outputs[i].w = 60;
+//                outputs[i].h = 40;
+//                // Location of the rect
+//                outputs[i].x = SCREEN_WIDTH-outputs[i].w - 10;
+////                outputs[i].y = 50 + (outputs[i].h + 10) * i;
+//                outputs[i].y = SCREEN_HEIGHT/stats.number_of_inputs - outputs[i].h*stats.number_of_inputs/2 + (outputs[i].h + 10) * i;
+//
+//                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
+//                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
+//
+//            }
+//
+//            for (int i = 0; i < stats.number_of_dffs; ++i) {
+//                // Dimensions of the inputs
+//                ddfs[i].w = 60;
+//                ddfs[i].h = 40;
+//                // Location of the rect
+//                ddfs[i].x = SCREEN_WIDTH/2;
+//                ddfs[i].y = SCREEN_HEIGHT/stats.number_of_dffs - ddfs[i].h*stats.number_of_dffs/2 + (ddfs[i].h + 10) * i;
+//
+//
+//                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
+//                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
+//
+//            }
+//
+//
+//            // Event loop exit flag
+//            bool quit = false;
+//
+//            // Event loop
+//            while (!quit) {
+//                SDL_Event e;
+//
+//                // Wait indefinitely for the next available event
+//                SDL_WaitEvent(&e);
+//
+//                // User requests quit
+//                if (e.type == SDL_QUIT) {
+//                    quit = true;
+//                }
+//
+//                // Initialize renderer color white for the background
+//                SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+//
+//                // Clear screen
+//                SDL_RenderClear(renderer);
+//
+//                // Set renderer color red to draw the square
+//                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
+//
+//                // Draw filled square
+//                for (int i = 0; i < stats.number_of_inputs; ++i) {
+//                    SDL_RenderFillRect(renderer, &inputs[i]);
+//                }
+//                for (int i = 0; i < stats.number_of_outputs; ++i) {
+//                    SDL_RenderFillRect(renderer, &outputs[i]);
+//                }
+//                for (int i = 0; i < stats.number_of_dffs; ++i) {
+//                    SDL_RenderFillRect(renderer, &ddfs[i]);
+//                }
+//                // Update screen
+//                SDL_RenderPresent(renderer);
+//            }
+//
+//            // Destroy renderer
+//            SDL_DestroyRenderer(renderer);
+//
+//            // Destroy window
+//            SDL_DestroyWindow(window);
+//        }
+//
+//        // Quit SDL2_ttf
+//        TTF_Quit();
+//
+//        // Quit SDL
+//        SDL_Quit();
+//
+//    }
+        return 0;
 }

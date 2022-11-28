@@ -57,14 +57,14 @@
 				{
 					"directoryIndex" : 1,
 					"id" : "benchstat::@36f028580bb02cc8272a",
-					"jsonFile" : "target-benchstat-Debug-cb5ba695b449b8ef2bd1.json",
+					"jsonFile" : "target-benchstat-Debug-4323fe8558299acfc48a.json",
 					"name" : "benchstat",
 					"projectIndex" : 0
 				},
 				{
 					"directoryIndex" : 1,
 					"id" : "ttf-sample::@36f028580bb02cc8272a",
-					"jsonFile" : "target-ttf-sample-Debug-835b92b5d2f6709cfabf.json",
+					"jsonFile" : "target-ttf-sample-Debug-2fc2a6844584270e56f6.json",
 					"name" : "ttf-sample",
 					"projectIndex" : 0
 				}

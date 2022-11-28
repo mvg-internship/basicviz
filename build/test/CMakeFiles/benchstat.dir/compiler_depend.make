@@ -447,6 +447,18 @@ test/CMakeFiles/benchstat.dir/bench.cpp.o: /Users/fake.andrey/CLionProjects/basi
   /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/wordexp.h \
   /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/detail/call_in_topological_order.hpp \
   /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/regex \
+  /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/lorina.hpp \
+  /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/aiger.hpp \
+  /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/blif.hpp \
+  /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/bristol.hpp \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/sstream \
+  /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/dimacs.hpp \
+  /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/genlib.hpp \
+  /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/pla.hpp \
+  /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/verilog.hpp \
+  /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/detail/tokenizer.hpp \
+  /Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/verilog_regex.hpp \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/queue \
   /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/stdbool.h \
   /Library/Developer/CommandLineTools/usr/lib/clang/13.1.6/include/stdbool.h \
   /opt/homebrew/include/SDL2/SDL.h \
@@ -560,8 +572,6 @@ test/CMakeFiles/benchstat.dir/bench.cpp.o: /Users/fake.andrey/CLionProjects/basi
 
 /opt/homebrew/include/SDL2/SDL_audio.h:
 
-/opt/homebrew/include/SDL2/SDL_atomic.h:
-
 /opt/homebrew/include/SDL2/SDL_assert.h:
 
 /Library/Developer/CommandLineTools/usr/lib/clang/13.1.6/include/float.h:
@@ -593,6 +603,26 @@ test/CMakeFiles/benchstat.dir/bench.cpp.o: /Users/fake.andrey/CLionProjects/basi
 /Library/Developer/CommandLineTools/usr/lib/clang/13.1.6/include/stdbool.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/stdbool.h:
+
+/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/verilog_regex.hpp:
+
+/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/detail/tokenizer.hpp:
+
+/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/verilog.hpp:
+
+/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/pla.hpp:
+
+/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/genlib.hpp:
+
+/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/dimacs.hpp:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/sstream:
+
+/opt/homebrew/include/SDL2/SDL_atomic.h:
+
+/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/bristol.hpp:
+
+/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/lorina.hpp:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/regex:
 
@@ -701,6 +731,8 @@ test/CMakeFiles/benchstat.dir/bench.cpp.o: /Users/fake.andrey/CLionProjects/basi
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/__iterator/access.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/system_error:
+
+/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/aiger.hpp:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/sys/_types/_null.h:
 
@@ -1013,6 +1045,8 @@ test/CMakeFiles/benchstat.dir/bench.cpp.o: /Users/fake.andrey/CLionProjects/basi
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/sys/_types/_blkcnt_t.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/cerrno:
+
+/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include/lorina/blif.hpp:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/tuple:
 
@@ -1467,6 +1501,8 @@ test/CMakeFiles/benchstat.dir/bench.cpp.o: /Users/fake.andrey/CLionProjects/basi
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/sys/_types/_caddr_t.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/__bit_reference:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/queue:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/variant:
 

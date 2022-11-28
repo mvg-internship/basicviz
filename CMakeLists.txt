@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.13)
 
 project(LSVis VERSION 0.0)
 
+include_directories(extern/lorina/test/catch2) # v2.0.1
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 

@@ -4,7 +4,7 @@
 # compile CXX with /Library/Developer/CommandLineTools/usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -isystem /opt/homebrew/include/SDL2
+CXX_INCLUDES = -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/test/catch2 -isystem /opt/homebrew/include/SDL2
 
 CXX_FLAGSarm64 =  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk -std=gnu++17
 
