@@ -6,6 +6,7 @@
 #include <vector>
 #include <stdio.h>
 #include <stdbool.h>
+#include <list>
 
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -22,6 +23,16 @@
 
 using namespace lorina;
 
+struct parametrs {
+    //добавить конструктор
+    std::vector<std::string> inputs;
+    std::string type = "none";
+    std::string output = "none";
+    parametrs(const std::vector<std::string> &inputs, const std::string &type , const std::string &output)
+        : inputs(inputs), type(type), output(output){}
+
+};
+
 struct bench_statistics {
     uint32_t number_of_inputs = 0;
     uint32_t number_of_outputs = 0;
@@ -29,7 +40,34 @@ struct bench_statistics {
 
     /* lines without input and outputs */
     uint32_t number_of_lines = 0;
+
+//    uint32_t number_of_elements = 0;
+
+    std::vector<parametrs> element;
 };
+
+int getGate(const std::string &gate) {
+    return std::stoi(gate.substr(1));
+}
+
+void addEdge(bench_statistics &stats, const std::vector<std::string> &inputs, const std::string &type = "none", const std::string &output = "none"){
+    stats.element.emplace_back(inputs, type, output);
+//    parametrs p("null", "null", "null");
+//    for (int i = 0; i<input.size(); ++i)
+//        p.inputs.push_back(input[i]); // заполнение массива без указателя
+//    p.type = type;
+//    p.output = output;
+//    stats.element.push_back(p); // emplace_back - перестроить
+//    std::cout << "[data]  ------  ";
+//    for (int i = 0; i<input.size(); ++i)
+//        std::cout << input[i] << "  ";
+//    std::cout << type << "  " << output << std::endl;
+//    std::cout << "[result]------  ";
+//    for (int i = 0; i<p.inputs.size(); ++i)
+//        std::cout << p.inputs[i] << "  ";
+//    std::cout << p.type << "  " << p.output << std::endl;
+}
+
 
 class bench_statistics_reader : public bench_reader {
 public:
@@ -40,11 +78,13 @@ public:
 
     virtual void on_input(const std::string &name) const override {
         (void) name;
+//        addEdge(_stats, , "input", name);
         ++_stats.number_of_inputs;
     }
 
     virtual void on_output(const std::string &name) const override {
         (void) name;
+//        addEdge(_stats, name, "output", "none");
         ++_stats.number_of_outputs;
     }
 
@@ -61,6 +101,14 @@ public:
     virtual void
     on_gate(const std::vector<std::string> &inputs, const std::string &output, const std::string &type) const override {
         gate_lines.emplace_back(inputs, output, type);
+
+//        for (int i=0; i<inputs.size(); ++i){
+//            std::cout << inputs[i] << " " << type << " " << output << std::endl;
+//        }
+
+        addEdge(_stats, inputs, type, output);
+
+//        std::cout << "outp --" << getGate(output) << std::endl;
         ++_stats.number_of_lines;
     }
 
@@ -74,40 +122,41 @@ public:
     mutable std::vector<std::tuple<std::vector<std::string>, std::string, std::string>> gate_lines;
 }; /* bench_statistics_reader */
 
-class bench_pretty_printer : public bench_reader
-{
-public:
-    /*! \brief Constructor of the BENCH pretty printer.
-     *
-     * \param os Output stream
-     */
-    bench_pretty_printer( std::ostream& os = std::cout )
-            : _os( os )
-    {
-    }
 
-    virtual void on_input( const std::string& name ) const override
-    {
-        _os << fmt::format( "INPUT({0})", name ) << std::endl;
-    }
-
-    virtual void on_output( const std::string& name ) const override
-    {
-        _os << fmt::format( "OUTPUT({0})", name ) << std::endl;
-    }
-
-    virtual void on_gate( const std::vector<std::string>& inputs, const std::string& output, const std::string& type ) const override
-    {
-        _os << fmt::format( "{0} = {1}({2})", output, type, detail::join( inputs, "," ) ) << std::endl;
-    }
-
-    virtual void on_assign( const std::string& input, const std::string& output ) const override
-    {
-        _os << fmt::format( "{0} = {1}", output, input ) << std::endl;
-    }
-
-    std::ostream& _os; /*!< Output stream */
-}; /* bench_pretty_printer */
+//class bench_pretty_printer : public bench_reader
+//{
+//public:
+//    /*! \brief Constructor of the BENCH pretty printer.
+//     *
+//     * \param os Output stream
+//     */
+//    bench_pretty_printer( std::ostream& os = std::cout )
+//            : _os( os )
+//    {
+//    }
+//
+//    virtual void on_input( const std::string& name ) const override
+//    {
+//        _os << fmt::format( "INPUT({0})", name ) << std::endl;
+//    }
+//
+//    virtual void on_output( const std::string& name ) const override
+//    {
+//        _os << fmt::format( "OUTPUT({0})", name ) << std::endl;
+//    }
+//
+//    virtual void on_gate( const std::vector<std::string>& inputs, const std::string& output, const std::string& type ) const override
+//    {
+//        _os << fmt::format( "{0} = {1}({2})", output, type, detail::join( inputs, "," ) ) << std::endl;
+//    }
+//
+//    virtual void on_assign( const std::string& input, const std::string& output ) const override
+//    {
+//        _os << fmt::format( "{0} = {1}", output, input ) << std::endl;
+//    }
+//
+//    std::ostream& _os; /*!< Output stream */
+//}; /* bench_pretty_printer */
 
 static void
 dump_statistics(FILE *f, const bench_statistics &st) {
@@ -117,6 +166,7 @@ dump_statistics(FILE *f, const bench_statistics &st) {
             st.number_of_dffs,
             st.number_of_lines);
 }
+
 
 int
 main(int argc, char *argv[]) {
@@ -145,22 +195,41 @@ main(int argc, char *argv[]) {
 
         auto result = read_bench(ifs, reader);
         if (result == return_code::success) {
-            dump_statistics(stdout, stats);
+            std::cout << "Finished" << std::endl;
+//            dump_statistics(stdout, stats);
         }
 
     }
 
-
-    const auto &gate_lines = reader.gate_lines;
-    std::cout << "gate lines size --  " << gate_lines.size() << std::endl;
-    std::cout << "gate lines data --  " << gate_lines.data() << std::endl;
-    // "left" == "type" ("right") - struct of objects in .bench file
-    for (int i=0; i<stats.number_of_lines; ++i){
-        std::cout << "------------------------line" << i << "------------------------" << std::endl;
-        std::cout << "left -- " << std::get<1>(gate_lines[i])[0] << std::get<1>(gate_lines[i])[1] << std::get<1>(gate_lines[i])[2]<< std::endl;
-        std::cout << "type -- " << std::get<2>(gate_lines[i])[0] << std::get<2>(gate_lines[i])[1] << std::get<2>(gate_lines[i])[2]<< std::endl;
-        std::cout << "right -- " << std::get<0>(gate_lines[i])[0]<< " " << std::get<0>(gate_lines[i])[1] << " " << std::get<0>(gate_lines[i])[2]<< std::endl;
+    for(int i = 0; i<stats.element.size(); ++i){
+        for (int j = 0; j<stats.element[i].inputs.size(); ++j){
+            std::cout << stats.element[i].inputs[j] << " ";
+        }
+        std::cout << " || " << stats.element[i].type << " || ";
+        std::cout << stats.element[i].output << std::endl;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+//    const auto &gate_lines = reader.gate_lines;
+//    for (int i=0; i<stats.number_of_lines; ++i){
+//        std::cout << "------------------------line" << i << "------------------------" << std::endl;
+//        std::cout << "left -- " << std::get<1>(gate_lines[i])[0] << std::get<1>(gate_lines[i])[1] << std::get<1>(gate_lines[i])[2]<< std::endl;
+//        std::cout << "type -- " << std::get<2>(gate_lines[i])[0] << std::get<2>(gate_lines[i])[1] << std::get<2>(gate_lines[i])[2]<< std::endl;
+//        std::cout << "right -- " << std::get<0>(gate_lines[i])[0]<< " " << std::get<0>(gate_lines[i])[1] << std::endl;
+//    }
+
+
 
 
 //    SDL_Rect inputs[stats.number_of_inputs];

@@ -461,6 +461,7 @@ test/CMakeFiles/benchstat.dir/bench.cpp.o: /Users/fake.andrey/CLionProjects/basi
   /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/queue \
   /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/stdbool.h \
   /Library/Developer/CommandLineTools/usr/lib/clang/13.1.6/include/stdbool.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/list \
   /opt/homebrew/include/SDL2/SDL.h \
   /opt/homebrew/include/SDL2/SDL_main.h \
   /opt/homebrew/include/SDL2/SDL_stdinc.h \
@@ -633,6 +634,8 @@ test/CMakeFiles/benchstat.dir/bench.cpp.o: /Users/fake.andrey/CLionProjects/basi
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/libgen.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/unordered_set:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/list:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/__hash_table:
 
