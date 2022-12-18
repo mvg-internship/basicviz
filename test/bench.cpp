@@ -52,9 +52,9 @@ void addEdge(bench_statistics &stats, const std::vector<std::string> &inputs, co
     stats.element.emplace_back(inputs, type, output);
 }
 
-void sortGraph(bench_statistics &stats){
+void sortGraph(bench_statistics &stats, std::vector <std::vector<parametrs>> &array){
     std::vector<parametrs> temp;
-    std::vector <std::vector<parametrs>> array;
+//    std::vector <std::vector<parametrs>> array;
 
 //  запись input'ов в временный массив
     for (int i = 0; i<stats.element.size(); ++i){
@@ -108,15 +108,15 @@ void sortGraph(bench_statistics &stats){
     array.emplace_back(temp);
     temp.clear();
 
-//  вывод полученной матрицы
-    for (int i = 0; i < array.size(); ++i ){
-        for (int j = 0; j < array[i].size(); ++j ){
-            for (int k = 0; k < array[i][j].inputs.size(); ++k)
-                std::cout << array[i][j].inputs[k] << "  ";
-            std::cout << array[i][j].type << "  " << array[i][j].output << " || ";
-        }
-        std::cout << std::endl;
-    }
+////  вывод полученной матрицы
+//    for (int i = 0; i < array.size(); ++i ){
+//        for (int j = 0; j < array[i].size(); ++j ){
+//            for (int k = 0; k < array[i][j].inputs.size(); ++k)
+//                std::cout << array[i][j].inputs[k] << "  ";
+//            std::cout << array[i][j].type << "  " << array[i][j].output << " || ";
+//        }
+//        std::cout << std::endl;
+//    }
 
 //    std::vector<parametrs> array;
 
@@ -140,6 +140,8 @@ void sortGraph(bench_statistics &stats){
 //        std::cout << array[i].output << std::endl;
 //    }
 //    std::cout << "----------------------------------" << std::endl;
+
+
 }
 
 class bench_statistics_reader : public bench_reader {
@@ -294,9 +296,19 @@ main(int argc, char *argv[]) {
 
     std::cout << "----------------------------------------" << std::endl;
 
+    std::vector <std::vector<parametrs>> matrix;
 
-    sortGraph(stats);
+    sortGraph(stats, matrix);
 
+    //  вывод полученной матрицы
+    for (int i = 0; i < matrix.size(); ++i ){
+        for (int j = 0; j < matrix[i].size(); ++j ){
+            for (int k = 0; k < matrix[i][j].inputs.size(); ++k)
+                std::cout << matrix[i][j].inputs[k] << "  ";
+            std::cout << matrix[i][j].type << "  " << matrix[i][j].output << " || ";
+        }
+        std::cout << std::endl;
+    }
 
 
 
