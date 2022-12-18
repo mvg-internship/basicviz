@@ -28,6 +28,10 @@ struct parametrs {
     std::string type = "none";
     std::string output = "none";
 
+    int koef_x = 0;
+    int koef_y = 0;
+
+
     parametrs(const std::vector<std::string> &inputs, const std::string &type , const std::string &output)
         : inputs(inputs), type(type), output(output){}
 };
@@ -54,7 +58,7 @@ void addEdge(bench_statistics &stats, const std::vector<std::string> &inputs, co
 
 void sortGraph(bench_statistics &stats, std::vector <std::vector<parametrs>> &array){
     std::vector<parametrs> temp;
-//    std::vector <std::vector<parametrs>> array;
+    std::vector <std::vector<parametrs>> temp_array;
 
 //  запись input'ов в временный массив
     for (int i = 0; i<stats.element.size(); ++i){
@@ -81,11 +85,6 @@ void sortGraph(bench_statistics &stats, std::vector <std::vector<parametrs>> &ar
                 if (temp[j].inputs[0] == array[k][i].output || temp[j].inputs[1] == array[k][i].output){
                     array.emplace_back();
                     array[k+1].emplace_back(temp[j]);
-
-                    //вывод-проверка проходящих через условие элементов
-//                    std::cout << (temp.begin()+j)->inputs[0] << " " << (temp.begin()+j)->inputs[1] << " " << (temp.begin()+j)->type
-//                        << "  " << (temp.begin()+j)->output << std::endl;
-
                     temp.erase(temp.begin()+j); j--;
                 }
             }
@@ -108,6 +107,7 @@ void sortGraph(bench_statistics &stats, std::vector <std::vector<parametrs>> &ar
     array.emplace_back(temp);
     temp.clear();
 
+
 ////  вывод полученной матрицы
 //    for (int i = 0; i < array.size(); ++i ){
 //        for (int j = 0; j < array[i].size(); ++j ){
@@ -118,30 +118,50 @@ void sortGraph(bench_statistics &stats, std::vector <std::vector<parametrs>> &ar
 //        std::cout << std::endl;
 //    }
 
-//    std::vector<parametrs> array;
-
-// 1 демо версия сортировки
-//    std::string temp;
-//    temp = stats.element[0].output;
-//    for (int i=0; i < stats.element.size(); ++i){
-//        if ( temp == stats.element[i].inputs[0] || temp == stats.element[i].inputs[1] ){
-//            array.push_back(stats.element[i]);
-//            temp = stats.element[i].output;
-//        }
-//    }
-
-    //Вывод элементов после 1 версии сортировки
-//    std::cout << "----------------------------------" << std::endl;
-//    for(int i = 0; i<array.size(); ++i){
-//        for (int j = 0; j<array[i].inputs.size(); ++j){
-//            std::cout << array[i].inputs[j] << " ";
-//        }
-//        std::cout << " || " << array[i].type << " || ";
-//        std::cout << array[i].output << std::endl;
-//    }
-//    std::cout << "----------------------------------" << std::endl;
 
 
+//Временное решение перераспределения памяти
+    int i = 0;
+    while(i != array.size()){
+        if (array[i].empty() == false){
+            temp_array.emplace_back(array[i]);
+        }
+        i++;
+    }
+    array.clear();
+    array.shrink_to_fit();
+
+    for (int i = 0; i < temp_array.size(); ++i){
+        array.emplace_back(temp_array[i]);
+    }
+
+}
+
+int maxStr(std::vector <std::vector<parametrs>> &array){
+    int max = 0;
+    for (int i = 0; i < array.size(); ++i){
+        if ( max < array[i].size() ) max = array[i].size();
+    }
+    return max;
+}
+
+void setCoordinates(std::vector <std::vector<parametrs>> &array){
+    for (int i = 0; i < array.size(); ++i) {
+        if (array[i].empty() == false) {
+            for (int j = 0; j < array.size(); ++j) {
+                array[i][j].koef_x = i;
+                array[i][j].koef_y = j;
+            }
+        }
+    }
+}
+
+void matrix_to_vector (std::vector<parametrs> &vector, std::vector <std::vector<parametrs>> &array){
+    for (int i = 0; i < array.size(); ++i){
+        for (int j = 0; j < array[i].size(); ++j){
+            vector.emplace_back(array[i][j]);
+        }
+    }
 }
 
 class bench_statistics_reader : public bench_reader {
@@ -253,22 +273,23 @@ dump_statistics(FILE *f, const bench_statistics &st) {
 
 int
 main(int argc, char *argv[]) {
-//#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
-//    // Disable compositor bypass
-//    if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"))
-//    {
-//        printf("SDL can not disable compositor bypass!\n");
-//        return 0;
-//    }
-//#endif
-//    // Initialize SDL2
-//    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-//        printf("SDL2 could not be initialized!\n"
-//               "SDL2 Error: %s\n", SDL_GetError());
-//        return 0;
-//    }
-//    // Initialize SDL2_ttf
-//    TTF_Init();
+#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
+    // Disable compositor bypass
+    if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"))
+    {
+        printf("SDL can not disable compositor bypass!\n");
+        return 0;
+    }
+#endif
+    // Initialize SDL2
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        printf("SDL2 could not be initialized!\n"
+               "SDL2 Error: %s\n", SDL_GetError());
+        return 0;
+    }
+
+    // Initialize SDL2_ttf
+    TTF_Init();
 
     bench_statistics stats;
     bench_statistics_reader reader(stats);
@@ -297,61 +318,73 @@ main(int argc, char *argv[]) {
     std::cout << "----------------------------------------" << std::endl;
 
     std::vector <std::vector<parametrs>> matrix;
+    std::vector <parametrs> vector_of_elements;
 
     sortGraph(stats, matrix);
+    setCoordinates(matrix);
+    matrix_to_vector(vector_of_elements, matrix);
 
     //  вывод полученной матрицы
     for (int i = 0; i < matrix.size(); ++i ){
         for (int j = 0; j < matrix[i].size(); ++j ){
             for (int k = 0; k < matrix[i][j].inputs.size(); ++k)
                 std::cout << matrix[i][j].inputs[k] << "  ";
-            std::cout << matrix[i][j].type << "  " << matrix[i][j].output << " || ";
+            std::cout << matrix[i][j].type << "  " << matrix[i][j].output << " | "  << matrix[i][j].koef_x <<
+            "  " << matrix[i][j].koef_y << " | " ;
         }
         std::cout << std::endl;
     }
 
-
-
-//    const auto &gate_lines = reader.gate_lines;
-//    for (int i=0; i<stats.number_of_lines; ++i){
-//        std::cout << "------------------------line" << i << "------------------------" << std::endl;
-//        std::cout << "left -- " << std::get<1>(gate_lines[i])[0] << std::get<1>(gate_lines[i])[1] << std::get<1>(gate_lines[i])[2]<< std::endl;
-//        std::cout << "type -- " << std::get<2>(gate_lines[i])[0] << std::get<2>(gate_lines[i])[1] << std::get<2>(gate_lines[i])[2]<< std::endl;
-//        std::cout << "right -- " << std::get<0>(gate_lines[i])[0]<< " " << std::get<0>(gate_lines[i])[1] << std::endl;
-//    }
-
-
-
+    SDL_Rect elements[vector_of_elements.size()];
 
 //    SDL_Rect inputs[stats.number_of_inputs];
-//    SDL_Rect outputs[stats.number_of_inputs];
+//    SDL_Rect outputs[stats.number_of_outputs];
 //    SDL_Rect ddfs[stats.number_of_dffs];
 //    SDL_Rect lines[stats.number_of_lines];
-//
-//    // Create window
-//    SDL_Window *window = SDL_CreateWindow("SDL2_ttf sample",
-//                                          SDL_WINDOWPOS_UNDEFINED,
-//                                          SDL_WINDOWPOS_UNDEFINED,
-//                                          SCREEN_WIDTH, SCREEN_HEIGHT,
-//                                          SDL_WINDOW_SHOWN);
-//    if (!window) {
-//        printf("Window could not be created!\n"
-//               "SDL_Error: %s\n", SDL_GetError());
-//    } else {
-//        // Create renderer
-//        SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-//        if (!renderer) {
-//            printf("Renderer could not be created!\n"
-//                   "SDL_Error: %s\n", SDL_GetError());
-//        } else {
-//
+
+    // Create window
+    SDL_Window *window = SDL_CreateWindow("SDL2_ttf sample",
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SCREEN_WIDTH, SCREEN_HEIGHT,
+                                          SDL_WINDOW_SHOWN);
+    if (!window) {
+        printf("Window could not be created!\n"
+               "SDL_Error: %s\n", SDL_GetError());
+    } else {
+        // Create renderer
+        SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+        if (!renderer) {
+            printf("Renderer could not be created!\n"
+                   "SDL_Error: %s\n", SDL_GetError());
+        } else {
+
+            for (int i = 0; i < vector_of_elements.size(); ++i) {
+
+                // Dimensions of the inputs
+                elements[i].w = SCREEN_WIDTH/matrix.size() - 70;
+                elements[i].h = SCREEN_HEIGHT/maxStr(matrix) - 50;
+
+                // Location of the rect
+                elements[i].x = SCREEN_WIDTH / (2 * matrix.size()) + (SCREEN_WIDTH / matrix.size()) * vector_of_elements[i].koef_x;
+                elements[i].y = SCREEN_HEIGHT/ (3*maxStr(matrix)) + (SCREEN_HEIGHT / maxStr(matrix)) * vector_of_elements[i].koef_y;
+
+
+                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
+                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
+
+            }
+
+
 //            for (int i = 0; i < stats.number_of_inputs; ++i) {
+//
 //                // Dimensions of the inputs
 //                inputs[i].w = 60;
 //                inputs[i].h = 40;
+//
 //                // Location of the rect
-//                inputs[i].x = 10;
-//                inputs[i].y = SCREEN_HEIGHT/stats.number_of_inputs - inputs[i].h*stats.number_of_inputs/2 + (inputs[i].h + 10) * i;
+//                inputs[i].x = SCREEN_WIDTH/(2*matrix.size());
+//                inputs[i].y = 100*i+10;
 //
 //
 //                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
@@ -360,13 +393,14 @@ main(int argc, char *argv[]) {
 //            }
 //
 //            for (int i = 0; i < stats.number_of_outputs; ++i) {
+//
 //                // Dimensions of the outputs
 //                outputs[i].w = 60;
 //                outputs[i].h = 40;
+//
 //                // Location of the rect
-//                outputs[i].x = SCREEN_WIDTH-outputs[i].w - 10;
-////                outputs[i].y = 50 + (outputs[i].h + 10) * i;
-//                outputs[i].y = SCREEN_HEIGHT/stats.number_of_inputs - outputs[i].h*stats.number_of_inputs/2 + (outputs[i].h + 10) * i;
+//                outputs[i].x = SCREEN_WIDTH-3*SCREEN_WIDTH/matrix.size();
+//                outputs[i].y = 10;
 //
 //                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
 //                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
@@ -386,59 +420,59 @@ main(int argc, char *argv[]) {
 //                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
 //
 //            }
-//
-//
-//            // Event loop exit flag
-//            bool quit = false;
-//
-//            // Event loop
-//            while (!quit) {
-//                SDL_Event e;
-//
-//                // Wait indefinitely for the next available event
-//                SDL_WaitEvent(&e);
-//
-//                // User requests quit
-//                if (e.type == SDL_QUIT) {
-//                    quit = true;
-//                }
-//
-//                // Initialize renderer color white for the background
-//                SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-//
-//                // Clear screen
-//                SDL_RenderClear(renderer);
-//
-//                // Set renderer color red to draw the square
-//                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
-//
-//                // Draw filled square
-//                for (int i = 0; i < stats.number_of_inputs; ++i) {
-//                    SDL_RenderFillRect(renderer, &inputs[i]);
-//                }
+
+
+            // Event loop exit flag
+            bool quit = false;
+
+            // Event loop
+            while (!quit) {
+                SDL_Event e;
+
+                // Wait indefinitely for the next available event
+                SDL_WaitEvent(&e);
+
+                // User requests quit
+                if (e.type == SDL_QUIT) {
+                    quit = true;
+                }
+
+                // Initialize renderer color white for the background
+                SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+
+                // Clear screen
+                SDL_RenderClear(renderer);
+
+                // Set renderer color red to draw the square
+                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
+
+                // Draw filled square
+                for (int i = 0; i < vector_of_elements.size(); ++i) {
+                    SDL_RenderFillRect(renderer, &elements[i]);
+                }
 //                for (int i = 0; i < stats.number_of_outputs; ++i) {
 //                    SDL_RenderFillRect(renderer, &outputs[i]);
 //                }
 //                for (int i = 0; i < stats.number_of_dffs; ++i) {
 //                    SDL_RenderFillRect(renderer, &ddfs[i]);
 //                }
-//                // Update screen
-//                SDL_RenderPresent(renderer);
-//            }
-//
-//            // Destroy renderer
-//            SDL_DestroyRenderer(renderer);
-//
-//            // Destroy window
-//            SDL_DestroyWindow(window);
-//        }
-//
-//        // Quit SDL2_ttf
-//        TTF_Quit();
-//
-//        // Quit SDL
-//        SDL_Quit();
-//
-//    }
+                // Update screen
+                SDL_RenderPresent(renderer);
+            }
+
+            // Destroy renderer
+            SDL_DestroyRenderer(renderer);
+
+            // Destroy window
+            SDL_DestroyWindow(window);
+        }
+
+        // Quit SDL2_ttf
+        TTF_Quit();
+
+        // Quit SDL
+        SDL_Quit();
+
+    }
         return 0;
 }
