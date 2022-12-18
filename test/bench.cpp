@@ -24,13 +24,12 @@
 using namespace lorina;
 
 struct parametrs {
-    //добавить конструктор
     std::vector<std::string> inputs;
     std::string type = "none";
     std::string output = "none";
+
     parametrs(const std::vector<std::string> &inputs, const std::string &type , const std::string &output)
         : inputs(inputs), type(type), output(output){}
-
 };
 
 struct bench_statistics {
@@ -40,34 +39,108 @@ struct bench_statistics {
 
     /* lines without input and outputs */
     uint32_t number_of_lines = 0;
-
-//    uint32_t number_of_elements = 0;
+    uint32_t number_of_edges = 0;
 
     std::vector<parametrs> element;
 };
 
-int getGate(const std::string &gate) {
-    return std::stoi(gate.substr(1));
-}
+//int getGate(const std::string &gate) {
+//    return std::stoi(gate.substr(1));
+//}
 
 void addEdge(bench_statistics &stats, const std::vector<std::string> &inputs, const std::string &type = "none", const std::string &output = "none"){
     stats.element.emplace_back(inputs, type, output);
-//    parametrs p("null", "null", "null");
-//    for (int i = 0; i<input.size(); ++i)
-//        p.inputs.push_back(input[i]); // заполнение массива без указателя
-//    p.type = type;
-//    p.output = output;
-//    stats.element.push_back(p); // emplace_back - перестроить
-//    std::cout << "[data]  ------  ";
-//    for (int i = 0; i<input.size(); ++i)
-//        std::cout << input[i] << "  ";
-//    std::cout << type << "  " << output << std::endl;
-//    std::cout << "[result]------  ";
-//    for (int i = 0; i<p.inputs.size(); ++i)
-//        std::cout << p.inputs[i] << "  ";
-//    std::cout << p.type << "  " << p.output << std::endl;
 }
 
+void sortGraph(bench_statistics &stats){
+    std::vector<parametrs> temp;
+    std::vector <std::vector<parametrs>> array;
+
+//  запись input'ов в временный массив
+    for (int i = 0; i<stats.element.size(); ++i){
+        if (stats.element[i].inputs[0] == "none"){
+            temp.emplace_back(stats.element[i]);
+        }
+    }
+    array.emplace_back(temp);
+    temp.clear();
+
+//  запись всех элементов в временный массив
+    for (int i = 0; i<stats.element.size(); ++i){
+        if (stats.element[i].inputs[0] != "none" && stats.element[i].output != "none"){
+            temp.emplace_back(stats.element[i]);
+        }
+    }
+//  сортировка элементов и запись в матрицу
+////выделяется лишнаяя область памяти
+    int k = 0, flag = 0;
+    std::vector<parametrs> clear;
+    while(temp.size() != 0){
+        for (int i=0; i<array[k].size(); ++i){
+            for (int j=0; j<temp.size(); ++j){
+                if (temp[j].inputs[0] == array[k][i].output || temp[j].inputs[1] == array[k][i].output){
+                    array.emplace_back();
+                    array[k+1].emplace_back(temp[j]);
+
+                    //вывод-проверка проходящих через условие элементов
+//                    std::cout << (temp.begin()+j)->inputs[0] << " " << (temp.begin()+j)->inputs[1] << " " << (temp.begin()+j)->type
+//                        << "  " << (temp.begin()+j)->output << std::endl;
+
+                    temp.erase(temp.begin()+j); j--;
+                }
+            }
+        }
+        k++;
+    }
+    temp.clear();
+
+////  перераспределение памяти матрицы -- не работает
+//    for (int i = 0; i <array.size(); ++i)
+//        if (array.empty() == true){ array[i].clear(); array[i].shrink_to_fit();}
+
+
+//  запись output'ов в временный массив
+    for (int i = 0; i<stats.element.size(); ++i){
+        if (stats.element[i].output == "none"){
+            temp.emplace_back(stats.element[i]);
+        }
+    }
+    array.emplace_back(temp);
+    temp.clear();
+
+//  вывод полученной матрицы
+    for (int i = 0; i < array.size(); ++i ){
+        for (int j = 0; j < array[i].size(); ++j ){
+            for (int k = 0; k < array[i][j].inputs.size(); ++k)
+                std::cout << array[i][j].inputs[k] << "  ";
+            std::cout << array[i][j].type << "  " << array[i][j].output << " || ";
+        }
+        std::cout << std::endl;
+    }
+
+//    std::vector<parametrs> array;
+
+// 1 демо версия сортировки
+//    std::string temp;
+//    temp = stats.element[0].output;
+//    for (int i=0; i < stats.element.size(); ++i){
+//        if ( temp == stats.element[i].inputs[0] || temp == stats.element[i].inputs[1] ){
+//            array.push_back(stats.element[i]);
+//            temp = stats.element[i].output;
+//        }
+//    }
+
+    //Вывод элементов после 1 версии сортировки
+//    std::cout << "----------------------------------" << std::endl;
+//    for(int i = 0; i<array.size(); ++i){
+//        for (int j = 0; j<array[i].inputs.size(); ++j){
+//            std::cout << array[i].inputs[j] << " ";
+//        }
+//        std::cout << " || " << array[i].type << " || ";
+//        std::cout << array[i].output << std::endl;
+//    }
+//    std::cout << "----------------------------------" << std::endl;
+}
 
 class bench_statistics_reader : public bench_reader {
 public:
@@ -78,14 +151,20 @@ public:
 
     virtual void on_input(const std::string &name) const override {
         (void) name;
-//        addEdge(_stats, , "input", name);
+        std::vector<std::string> input;
+        input.emplace_back("none");
+        addEdge(_stats, input, "input", name);
         ++_stats.number_of_inputs;
+        ++_stats.number_of_edges;
     }
 
     virtual void on_output(const std::string &name) const override {
         (void) name;
-//        addEdge(_stats, name, "output", "none");
+        std::vector<std::string> input;
+        input.emplace_back(name);
+        addEdge(_stats, input, "output", "none");
         ++_stats.number_of_outputs;
+        ++_stats.number_of_edges;
     }
 
     virtual void on_dff_input(const std::string &input) const override {
@@ -95,27 +174,29 @@ public:
     virtual void on_dff(const std::string &input, const std::string &output) const override {
         (void) input;
         (void) output;
+        std::vector<std::string> inp;
+        inp.emplace_back(input);
+        addEdge(_stats, inp, "dff", output);
         ++_stats.number_of_dffs;
+        ++_stats.number_of_edges;
     }
 
     virtual void
     on_gate(const std::vector<std::string> &inputs, const std::string &output, const std::string &type) const override {
         gate_lines.emplace_back(inputs, output, type);
-
-//        for (int i=0; i<inputs.size(); ++i){
-//            std::cout << inputs[i] << " " << type << " " << output << std::endl;
-//        }
-
         addEdge(_stats, inputs, type, output);
-
-//        std::cout << "outp --" << getGate(output) << std::endl;
         ++_stats.number_of_lines;
+        ++_stats.number_of_edges;
     }
 
     virtual void on_assign(const std::string &input, const std::string &output) const override {
         (void) input;
         (void) output;
+        std::vector<std::string> inp;
+        inp.emplace_back(input);
+        addEdge(_stats, inp, "dff", output);
         ++_stats.number_of_lines;
+        ++_stats.number_of_edges;
     }
 
     bench_statistics &_stats;
@@ -195,12 +276,13 @@ main(int argc, char *argv[]) {
 
         auto result = read_bench(ifs, reader);
         if (result == return_code::success) {
-            std::cout << "Finished" << std::endl;
+            std::cout << "Parsing: success" << std::endl;
 //            dump_statistics(stdout, stats);
         }
 
     }
 
+//  вывод содержащихся в структуре элементов
     for(int i = 0; i<stats.element.size(); ++i){
         for (int j = 0; j<stats.element[i].inputs.size(); ++j){
             std::cout << stats.element[i].inputs[j] << " ";
@@ -210,13 +292,10 @@ main(int argc, char *argv[]) {
     }
 
 
+    std::cout << "----------------------------------------" << std::endl;
 
 
-
-
-
-
-
+    sortGraph(stats);
 
 
 
