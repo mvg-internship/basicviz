@@ -2,7 +2,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "test/benchstat"
+			"path" : "test/ttf-sample"
 		}
 	],
 	"backtrace" : 1,
@@ -11,13 +11,11 @@
 		"commands" : 
 		[
 			"add_executable",
-			"target_link_libraries",
-			"include_directories"
+			"target_link_libraries"
 		],
 		"files" : 
 		[
-			"test/CMakeLists.txt",
-			"CMakeLists.txt"
+			"test/CMakeLists.txt"
 		],
 		"nodes" : 
 		[
@@ -27,28 +25,13 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 1,
+				"line" : 10,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 16,
-				"parent" : 0
-			},
-			{
-				"file" : 1
-			},
-			{
-				"command" : 2,
-				"file" : 1,
-				"line" : 5,
-				"parent" : 3
-			},
-			{
-				"command" : 1,
-				"file" : 0,
-				"line" : 4,
+				"line" : 11,
 				"parent" : 0
 			}
 		]
@@ -67,18 +50,6 @@
 			],
 			"includes" : 
 			[
-				{
-					"backtrace" : 4,
-					"path" : "/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/test/catch2"
-				},
-				{
-					"backtrace" : 5,
-					"path" : "/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include"
-				},
-				{
-					"backtrace" : 5,
-					"path" : "/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/lib/fmt"
-				},
 				{
 					"backtrace" : 2,
 					"isSystem" : true,
@@ -100,7 +71,7 @@
 			]
 		}
 	],
-	"id" : "benchstat::@36f028580bb02cc8272a",
+	"id" : "ttf-sample::@36f028580bb02cc8272a",
 	"link" : 
 	{
 		"commandFragments" : 
@@ -135,8 +106,8 @@
 		],
 		"language" : "CXX"
 	},
-	"name" : "benchstat",
-	"nameOnDisk" : "benchstat",
+	"name" : "ttf-sample",
+	"nameOnDisk" : "ttf-sample",
 	"paths" : 
 	{
 		"build" : "test",
@@ -157,7 +128,7 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "test/bench.cpp",
+			"path" : "test/ttf_sample.cpp",
 			"sourceGroupIndex" : 0
 		}
 	],

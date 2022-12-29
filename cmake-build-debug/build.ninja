@@ -77,7 +77,7 @@ build cmake_object_order_depends_target_benchstat: phony || test/CMakeFiles/benc
 build test/CMakeFiles/benchstat.dir/bench.cpp.o: CXX_COMPILER__benchstat_Debug /Users/fake.andrey/CLionProjects/basicviz/test/bench.cpp || cmake_object_order_depends_target_benchstat
   DEP_FILE = test/CMakeFiles/benchstat.dir/bench.cpp.o.d
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk -std=gnu++17
-  INCLUDES = -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/test/catch2 -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/lib/fmt -isystem /opt/homebrew/include/SDL2
+  INCLUDES = -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/include -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/lib/fmt -isystem /opt/homebrew/include/SDL2
   OBJECT_DIR = test/CMakeFiles/benchstat.dir
   OBJECT_FILE_DIR = test/CMakeFiles/benchstat.dir
 
@@ -111,7 +111,7 @@ build cmake_object_order_depends_target_ttf-sample: phony || test/CMakeFiles/ttf
 build test/CMakeFiles/ttf-sample.dir/ttf_sample.cpp.o: CXX_COMPILER__ttf-sample_Debug /Users/fake.andrey/CLionProjects/basicviz/test/ttf_sample.cpp || cmake_object_order_depends_target_ttf-sample
   DEP_FILE = test/CMakeFiles/ttf-sample.dir/ttf_sample.cpp.o.d
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk -std=gnu++17
-  INCLUDES = -I/Users/fake.andrey/CLionProjects/basicviz/extern/lorina/test/catch2 -isystem /opt/homebrew/include/SDL2
+  INCLUDES = -isystem /opt/homebrew/include/SDL2
   OBJECT_DIR = test/CMakeFiles/ttf-sample.dir
   OBJECT_FILE_DIR = test/CMakeFiles/ttf-sample.dir
 

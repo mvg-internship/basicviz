@@ -1,24 +1,18 @@
 #include <lorina/bench.hpp>
 #include <lorina/lorina.hpp>
-#include <cstdio>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <stdio.h>
-#include <stdbool.h>
-#include <list>
-#include <algorithm>
 
 #include <SDL.h>
 #include <SDL_ttf.h>
 
-// Define MAX and MIN macros
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 // Define screen dimensions
 #define SCREEN_WIDTH    800
 #define SCREEN_HEIGHT   600
+
 
 #define FONT_PATH   "../assets/ttf/DejaVuSansMono.ttf"
 
@@ -26,19 +20,17 @@ using namespace lorina;
 
 struct parametrs {
     std::vector<std::string> inputs;
-    std::string type = "none";
-    std::string output = "none";
+    std::string type = NULL;
+    std::string output = NULL;
 
-//    int width = 0;
-//    int length = 0;
-
+    //coordinates of first and second points
     float fp_x= 0;
     float fp_y = 0;
     float sp_x = 0;
     float sp_y = 0;
 
-    int koef_x = 0;
-    int koef_y = 0;
+    int coeff_x = 0;
+    int coeff_y = 0;
 
 
     parametrs(const std::vector<std::string> &inputs, const std::string &type, const std::string &output)
@@ -58,54 +50,52 @@ struct bench_statistics {
 };
 
 
-void addEdge(bench_statistics &stats, const std::vector<std::string> &inputs, const std::string &type = "none",
-             const std::string &output = "none") {
+void addEdge(bench_statistics &stats, const std::vector<std::string> &inputs, const std::string &type = "",
+             const std::string &output = ""){
     stats.element.emplace_back(inputs, type, output);
 }
 
 void sortGraph(bench_statistics &stats, std::vector<std::vector<parametrs>> &matrix) {
     std::vector<parametrs> temp;
 
-//  запись input'ов в временный массив
-    for (auto iter = stats.element.begin(); iter != stats.element.end(); ++iter) {
-        std::string type = iter->type;
+    for (const auto &iter : stats.element) {
+        std::string type = iter.type;
         if (type == "input") {
-            temp.emplace_back(*iter);
+            temp.emplace_back(iter);
         }
     }
     matrix.emplace_back(temp);
     temp.clear();
 
-//  запись всех элементов в временный массив
-    for (auto iter = stats.element.begin(); iter != stats.element.end(); ++iter) {
-        std::string type = iter->type;
+    for (const auto &iter : stats.element) {
+        std::string type = iter.type;
         if (type != "input" && type != "output") {
-            temp.emplace_back(*iter);
+            temp.emplace_back(iter);
         }
     }
 
-//  сортировка элементов и запись в матрицу
- int layer_num = 0;
-    while (temp.size() != 0) {
-        matrix.emplace_back();
-        for (auto matrix_it = matrix[layer_num].begin(); matrix_it != matrix[layer_num].end(); ++matrix_it) {
-            for (int j = 0; j < temp.size(); ++j) {
-                auto temp_it = std::find(temp[j].inputs.begin(), temp[j].inputs.end(), matrix_it->output);
-                if (temp_it != temp[j].inputs.end()) {
-                    matrix.back().emplace_back(temp[j]);
-                    temp.erase(temp.begin() + j);
-                    j--;
+//  sorting elements and recording to matrix
+    int layer_num = 0;
+        while (temp.size() != 0) {
+            matrix.emplace_back();
+            for (const auto &matrix_it : matrix[layer_num]) {
+                for (int j = 0; j < temp.size(); ++j) {
+                    const auto &temp_inputs = temp[j].inputs;
+                    auto temp_it = std::find(temp_inputs.begin(), temp_inputs.end(), matrix_it.output);
+                    if (temp_it != temp_inputs.end()) {
+                        matrix.back().emplace_back(temp[j]);
+                        temp.erase(temp.begin() + j);
+                        j--;
+                    }
                 }
             }
+            layer_num++;
         }
-        layer_num++;
-    }
     temp.clear();
 
-//  запись output'ов в временный массив
-    for (auto iter = stats.element.begin(); iter != stats.element.end(); ++iter) {
-        if (iter->output == "none") {
-            temp.emplace_back(*iter);
+    for (const auto &iter : stats.element) {
+        if (iter.type == "output") {
+            temp.emplace_back(iter);
         }
     }
     matrix.emplace_back(temp);
@@ -113,38 +103,47 @@ void sortGraph(bench_statistics &stats, std::vector<std::vector<parametrs>> &mat
 }
 
 int maxStr(std::vector<std::vector<parametrs>> &matrix) {
-    int max = 0;
-    for (auto iter = matrix.begin(); iter != matrix.end(); ++iter) {
-        if (max < iter->size()) max = iter->size();
+    size_t max = 0;
+    for (const auto &iter : matrix) {
+        if (max < iter.size()) max = iter.size();
     }
     return max;
 }
 
-void setKoef(std::vector<std::vector<parametrs>> &matrix) {
+void calculate_fp_coordinates( std::vector<parametrs>::iterator &it_str,
+                               std::vector<parametrs>::iterator &el_pred_str, std::vector<std::vector<parametrs>> &matrix) {
+    int fcoef_scale = 4;
+    int scoef_scale = 3;
+    it_str->fp_x = el_pred_str->sp_x + fcoef_scale * SCREEN_WIDTH / (2*scoef_scale*matrix.size());
+    it_str->fp_y = el_pred_str->sp_y + SCREEN_WIDTH / (4*matrix.size());
 
-    for (int i =0; i<matrix.size(); ++i) {
-        for (int j =0; j<matrix[i].size(); ++j) {
-            matrix[i][j].koef_x = i;
-            matrix[i][j].koef_y = j;
+}
 
-            if (matrix[i][j].type == "input"){
+void calculate_sp_coordinates( std::vector<parametrs>::iterator &it_str,
+                               std::vector<std::vector<parametrs>>::iterator &it_matrix, std::vector<std::vector<parametrs>> &matrix) {
+    int indent = 10;
+    it_str->sp_x = indent + (SCREEN_WIDTH/matrix.size()) * (it_matrix - matrix.begin());
+    it_str->sp_y = indent + (SCREEN_HEIGHT / maxStr(matrix)) * (it_str - it_matrix->begin());
 
-                matrix[i][j].sp_x = 10 + (SCREEN_WIDTH/matrix.size()) * i;
-                matrix[i][j].sp_y = 10 + (SCREEN_HEIGHT / maxStr(matrix)) * j;
+}
 
+void setCoordinates(std::vector<std::vector<parametrs>> &matrix) {
+    for (auto it_matrix = matrix.begin(); it_matrix != matrix.end(); ++it_matrix) {
+        for (auto it_str = it_matrix->begin(); it_str != it_matrix->end(); ++it_str) {
+            it_str->coeff_x = it_matrix - matrix.begin();
+            it_str->coeff_y = it_str - it_matrix->begin();
+
+            if (it_str->type == "input"){
+                calculate_sp_coordinates(it_str, it_matrix, matrix);
             }
 
-            if (matrix[i][j].type != "input"){
-                for (auto el_pred_str = matrix[i-1].begin(); el_pred_str != matrix[i-1].end(); ++el_pred_str){
+            else{
+                for (auto el_pred_str = (it_matrix-1)->begin(); el_pred_str != (it_matrix-1)->end(); ++el_pred_str){
 
-                    auto iter = std::find(matrix[i][j].inputs.begin(), matrix[i][j].inputs.end(), el_pred_str->output);
-                    if (iter != matrix[i][j].inputs.end()) {
-
-                        matrix[i][j].fp_x = el_pred_str->sp_x + 4 * SCREEN_WIDTH / (6*matrix.size());
-                        matrix[i][j].fp_y = el_pred_str->sp_y + SCREEN_WIDTH / (4*matrix.size());
-
-                        matrix[i][j].sp_x = 10 + (SCREEN_WIDTH/matrix.size()) * i;
-                        matrix[i][j].sp_y = 10 + (SCREEN_HEIGHT / maxStr(matrix)) * j;
+                    auto result = std::find(it_str->inputs.begin(), it_str->inputs.end(), el_pred_str->output);
+                    if (result != it_str->inputs.end()) {
+                        calculate_fp_coordinates(it_str, el_pred_str, matrix);
+                        calculate_sp_coordinates(it_str, it_matrix, matrix);
                     }
                 }
             }
@@ -153,11 +152,35 @@ void setKoef(std::vector<std::vector<parametrs>> &matrix) {
 }
 
 void matrix_to_vector(std::vector<parametrs> &vector, std::vector<std::vector<parametrs>> &matrix) {
-    for (auto i = matrix.begin(); i != matrix.end(); ++i) {
-        for (auto j = i->begin(); j != i->end(); ++j) {
-            vector.emplace_back(*j);
+    for (const auto &i : matrix){
+        for (const auto &j : i){
+            vector.emplace_back(j);
         }
     }
+}
+
+void debug(bench_statistics &stats, std::vector<parametrs> &vector_of_elements ){
+    std::cout << "All elements of the file" << std::endl;
+    for (const auto &element : stats.element){
+        for (const auto &inputs : element.inputs){
+            std::cout << inputs << " ";
+        }
+        std::cout << " || " << element.type << " || ";
+        std::cout << element.output << std::endl;
+    }
+
+    std::cout << "----------------------------------------" << std::endl;
+
+    std::cout  << "vector of elements" << std::endl;
+    for (const auto &element : vector_of_elements){
+        for (const auto &inputs : element.inputs){
+            std::cout << inputs << " ";
+        }
+        std::cout << element.type << " " << element.output << "  in(" << element.fp_x << " " << element.fp_y <<")  out("
+                  << element.sp_x << " " << element.sp_y << ")" << "  |"  << element.coeff_x << " " << element.coeff_y << "|"
+                  << std::endl;
+    }
+
 }
 
 class bench_statistics_reader : public bench_reader {
@@ -170,7 +193,6 @@ public:
     virtual void on_input(const std::string &name) const override {
         (void) name;
         std::vector<std::string> input;
-        input.emplace_back("none");
         addEdge(_stats, input, "input", name);
         ++_stats.number_of_inputs;
         ++_stats.number_of_edges;
@@ -180,7 +202,7 @@ public:
         (void) name;
         std::vector<std::string> input;
         input.emplace_back(name);
-        addEdge(_stats, input, "output", "none");
+        addEdge(_stats, input, "output");
         ++_stats.number_of_outputs;
         ++_stats.number_of_edges;
     }
@@ -255,59 +277,27 @@ main(int argc, char *argv[]) {
     bench_statistics stats;
     bench_statistics_reader reader(stats);
 
+    std::vector<std::vector<parametrs>> matrix;
+    std::vector<parametrs> vector_of_elements;
+
     for (int i = 1; i < argc; ++i) {
         std::ifstream ifs(argv[i]);
 
         auto result = read_bench(ifs, reader);
         if (result == return_code::success) {
-            std::cout << "Parsing: success" << std::endl;
-//            dump_statistics(stdout, stats);
+            dump_statistics(stdout, stats);
         }
 
     }
-
-//  вывод содержащихся в структуре элементов
-    std::cout << "All elements of the file" << std::endl;
-    for (int i = 0; i < stats.element.size(); ++i) {
-        for (int j = 0; j < stats.element[i].inputs.size(); ++j) {
-            std::cout << stats.element[i].inputs[j] << " ";
-        }
-        std::cout << " || " << stats.element[i].type << " || ";
-        std::cout << stats.element[i].output << std::endl;
-    }
-
-    std::cout << "----------------------------------------" << std::endl;
-
-    std::vector<std::vector<parametrs>> matrix;
-    std::vector<parametrs> vector_of_elements;
 
     sortGraph(stats, matrix);
-    setKoef(matrix);
+    setCoordinates(matrix);
     matrix_to_vector(vector_of_elements, matrix);
 
-    //  вывод полученной matrix
-//    std::cout  << "Sorted matrix" << std::endl;
-//    for (int i = 0; i < matrix.size(); ++i) {
-//        for (int j = 0; j < matrix[i].size(); ++j) {
-//            for (int k = 0; k < matrix[i][j].inputs.size(); ++k)
-//                std::cout << matrix[i][j].inputs[k] << "  ";
-//            std::cout << matrix[i][j].type << "  " << matrix[i][j].output << " | " << matrix[i][j].koef_x <<
-//                      "  " << matrix[i][j].koef_y << " | ";
-//        }
-//        std::cout << std::endl;
-//    }
-
-    std::cout  << "vector of elements" << std::endl;
-    for (auto iter = vector_of_elements.begin(); iter != vector_of_elements.end(); ++iter){
-        for (auto inp = iter->inputs.begin(); inp != iter->inputs.end(); ++inp)
-            std::cout << *inp << " ";
-        std::cout << iter->type << " " << iter->output << "  in(" << iter->fp_x << " " << iter->fp_y <<")  out(" <<
-        iter->sp_x << " " << iter->sp_y << ")" << "  |"  << iter->koef_x << " " << iter->koef_y << "|" << std::endl;
-    }
+    debug(stats, vector_of_elements);
 
 
     SDL_Rect elements[vector_of_elements.size()];
-
 
     // Create window
     SDL_Window *window = SDL_CreateWindow("SDL2_ttf sample",
@@ -326,6 +316,7 @@ main(int argc, char *argv[]) {
         } else {
 
             for (int i = 0; i < vector_of_elements.size(); ++i) {
+                int indent = 10;
 
                 // Dimensions of the inputs
                 elements[i].w = 4 * SCREEN_WIDTH / (6*matrix.size());
@@ -333,13 +324,8 @@ main(int argc, char *argv[]) {
 
 
                 // Location of the rects
-                elements[i].x = 10 + (SCREEN_WIDTH/matrix.size()) * vector_of_elements[i].koef_x;
-                elements[i].y = 10 + (SCREEN_HEIGHT / maxStr(matrix)) * vector_of_elements[i].koef_y;
-
-
-
-                SDL_Color textColor = {0x00, 0x00, 0x00, 0xFF};
-                SDL_Color textBackgroundColor = {0xFF, 0xFF, 0xFF, 0xFF};
+                elements[i].x = indent + (SCREEN_WIDTH/matrix.size()) * vector_of_elements[i].coeff_x;
+                elements[i].y = indent + (SCREEN_HEIGHT / maxStr(matrix)) * vector_of_elements[i].coeff_y;
 
             }
 
@@ -374,12 +360,13 @@ main(int argc, char *argv[]) {
                 }
 
                 SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+
                 // Draw lines
-                for (int i = stats.number_of_inputs; i < stats.element.size(); ++i) {
+                for (size_t i = stats.number_of_inputs; i < stats.element.size(); ++i) {
                     SDL_RenderDrawLine(renderer, vector_of_elements[i].fp_x,
-                                                    vector_of_elements[i].fp_y,
-                                                        vector_of_elements[i].sp_x,
-                                                            vector_of_elements[i].sp_y);
+                                                 vector_of_elements[i].fp_y,
+                                                 vector_of_elements[i].sp_x,
+                                                 vector_of_elements[i].sp_y);
                 }
 
 
