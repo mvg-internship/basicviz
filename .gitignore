@@ -1,0 +1,13 @@
+.DS_Store
+.idea/
+.cmake
+/CMakeFiles
+/build/
+/project/CMakeFiles/
+/test/CMakeFiles/
+build.ninja
+cmake_install.cmake
+/test/cmake_install.cmake
+/project/cmake_install.cmake
+CMakeCache.txt
+/cmake-build-debug
