@@ -10,11 +10,10 @@
 
 #include <SDL.h>
 
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080
-
-#define HOR_SPACING 2
-#define VER_SPACING 2
+enum SPACING {
+    HSPACING = 2,
+    VSPACING = 2
+};
 
 struct Vertex {
     std::string type;
@@ -76,13 +75,12 @@ public:
         scheme.emplace_back(dff);
     }
 
-    void add_gate(const std::vector<std::string>& inputs, const std::string& output, const std::string& type) {
+    void add_gate(std::vector<std::string> inputs, const std::string& output, const std::string& type) {
         Vertex gate;
         gate.type = type;
         gate.name = output;
-        std::vector<std::string> ins = inputs;
 
-        if(connection_search(gate, ins)) queue.emplace_back(gate, ins);
+        if(connection_search(gate, inputs)) queue.emplace_back(gate, inputs);
 
         scheme.emplace_back(gate);
     }
@@ -163,79 +161,23 @@ public:
     logic_scheme& scheme;
 };
 
-void buildRectangles(std::vector<Vertex>& elems, std::vector<SDL_FRect>& rects, std::vector<Line>& connections, int maxElem, double height, double width) {
-    if(elems.size() == maxElem) {
-        int count = 0;
-        for(auto elem : elems) {
-            SDL_FRect rect;
-            rect.x = elem.layer * 2 * width;
-            rect.y = count * 2 * height;
-            rect.h = height;
-            rect.w = width;
-            count++;
-            rects.emplace_back(rect);
+void setPosition(std::vector<Vertex>& elements, const int max_elements, const float height, const float width, const int screen_height) {
+    int count = 0;
+    int freeSpaces = elements.size() + 1;
+    float step = (screen_height - height * elements.size()) / freeSpaces;
+    for(Vertex& elem : elements) {
+        elem.position.x = elem.layer * HSPACING * width;
+        elem.position.h = height;
+        elem.position.w = width;
 
-            for(auto input : elem.ins) {
-                Line connection;
-                connection.x2 = rect.x;
-                connection.y2 = rect.y + rect.h/2;
-                connection.x1 = input.layer * 2 * width + width;
-                connection.y1 = 0;
-                connections.emplace_back(connection);
-            }
+        if (elements.size() == max_elements) {
+            elem.position.y = count * VSPACING * height;
         }
-    }
-
-    else {
-        int count = 0;
-        int freeSpaces = elems.size() + 1;
-        double step = (SCREEN_HEIGHT - height * elems.size()) / freeSpaces;
-        for(auto elem : elems) {
-            SDL_FRect rect;
-            rect.x = elem.layer * 2 * width;
-            rect.y = step * (count + 1) + height * count;
-            rect.h = height;
-            rect.w = width;
-            count++;
-            rects.emplace_back(rect);
-
-            for(auto input : elem.ins) {
-                Line connection;
-                connection.x2 = rect.x;
-                connection.y2 = rect.y + rect.h/2;
-                connection.x1 = input.layer * 2 * width + width;
-                connection.y1 = 0;
-                connections.emplace_back(connection);
-            }
-        }
-    }
-
-
-}
-
-void setPosition(std::vector<Vertex>& elements, const int max_elements, const float height, const float width) {
-    if(elements.size() == max_elements) {
-        int count = 0;
-        for(Vertex& elem : elements) {
-            elem.position.x = elem.layer * HOR_SPACING * width;
-            elem.position.y = count * VER_SPACING * height;
-            elem.position.h = height;
-            elem.position.w = width;
-            count++;
-        }
-    }
-
-    else {
-        int count = 0;
-        int freeSpaces = elements.size() + 1;
-        float step = (SCREEN_HEIGHT - height * elements.size()) / freeSpaces;
-        for(Vertex& elem : elements) {
-            elem.position.x = elem.layer * HOR_SPACING * width;
+        else {
             elem.position.y = step * (count + 1) + height * count;
-            elem.position.h = height;
-            elem.position.w = width;
-            count++;
         }
+
+        count++;
     }
 }
 
@@ -271,11 +213,19 @@ int main(int argc, char* argv[]) {
     logicScheme.queue_handling();
     logicScheme.output();
 
+    SDL_DisplayMode displayMode;
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
     std::vector<Line> connections;
+
+
     if(SDL_Init(SDL_INIT_VIDEO) < 0) return -3;
-    window = SDL_CreateWindow("test-viz", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+
+    SDL_GetCurrentDisplayMode(0, &displayMode);
+    const int screen_height = displayMode.h;
+    const int screen_width = displayMode.w;
+
+    window = SDL_CreateWindow("test-viz", 0, 0, screen_width, screen_height, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     //Finding total number of layers in element with max layer
@@ -299,13 +249,13 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    const float rectHeight = SCREEN_HEIGHT/(VER_SPACING*maxElems);
-    const float rectWidth = SCREEN_WIDTH/(HOR_SPACING*layersNum);
+    const float rectHeight = screen_height/(VSPACING*maxElems);
+    const float rectWidth = screen_width/(HSPACING*layersNum);
 
     std::cout << rectWidth << ' ' << rectHeight;
 
     for(std::vector<Vertex>& elements : elements_by_layers) {
-        setPosition(elements, maxElems, rectHeight, rectWidth);
+        setPosition(elements, maxElems, rectHeight, rectWidth, screen_height);
     }
 
     std::vector<Line> connection_lines;

@@ -1,5 +1,3 @@
-set(CMAKE_EXE_LINKER_FLAGS "-static")
-
 add_executable(benchstat
   bench.cpp)
 
