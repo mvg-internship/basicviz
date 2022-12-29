@@ -1,14 +1,13 @@
-#define SDL_MAIN_HANDLED
-
-//Standard libs includes
 #include <iostream>
 #include <vector>
 #include <string>
 #include <tuple>
 #include <variant>
 
-//External libs includes
 #include <lorina/bench.hpp>
+
+#define SDL_MAIN_HANDLED
+
 #include <SDL.h>
 
 #define SCREEN_WIDTH 1920
@@ -36,61 +35,61 @@ class logic_scheme {
 public:
 
     logic_scheme() {
-        _outputNum = 0;
+        outputNum = 0;
     }
 
-    void add_input(const std::string& _name) {
+    void add_input(const std::string& name) {
         Vertex input;
         input.type = "IN";
-        input.name = _name;
+        input.name = name;
         input.layer = 0;
 
-        _scheme.emplace_back(input);
+        scheme.emplace_back(input);
     }
 
-    void add_output(const std::string& _input) {
+    void add_output(const std::string& input) {
         Vertex output;
         output.type = "OUT";
-        output.name = std::string("output" + std::to_string(_outputNum));
+        output.name = std::string("output" + std::to_string(outputNum));
 
-        _outputNum++;
+        outputNum++;
 
         std::vector<std::string> ins;
-        ins.emplace_back(_input);
+        ins.emplace_back(input);
 
-        _queue.emplace_back(output, ins);
+        queue.emplace_back(output, ins);
 
-        _scheme.emplace_back(output);
+        scheme.emplace_back(output);
     }
 
-    void add_dff(const std::string& _input, const std::string& _output) {
+    void add_dff(const std::string& input, const std::string& output) {
         Vertex dff;
 
         dff.type = "DFF";
-        dff.name = _output;
+        dff.name = output;
 
         std::vector<std::string> ins;
-        ins.emplace_back(_input);
+        ins.emplace_back(input);
 
-        if(check_inputs(dff, ins)) _queue.emplace_back(dff, ins);
+        if(connection_search(dff, ins)) queue.emplace_back(dff, ins);
 
-        _scheme.emplace_back(dff);
+        scheme.emplace_back(dff);
     }
 
-    void add_gate(const std::vector<std::string>& _inputs, const std::string& _output, const std::string& _type) {
+    void add_gate(const std::vector<std::string>& inputs, const std::string& output, const std::string& type) {
         Vertex gate;
-        gate.type = _type;
-        gate.name = _output;
-        std::vector<std::string> ins = _inputs;
+        gate.type = type;
+        gate.name = output;
+        std::vector<std::string> ins = inputs;
 
-        if(check_inputs(gate, ins)) _queue.emplace_back(gate, ins);
+        if(connection_search(gate, ins)) queue.emplace_back(gate, ins);
 
-        _scheme.emplace_back(gate);
+        scheme.emplace_back(gate);
     }
 
-    //Method to check whether demanded input exists or not
-    bool check_inputs(Vertex& element, std::vector<std::string>& ins) {
-        for(Vertex& suggested_element : _scheme) {
+    //Method to check whether demanded input exists or not and connect it if possible
+    bool connection_search(Vertex& element, std::vector<std::string>& ins) {
+        for(Vertex& suggested_element : scheme) {
             for(int i = 0; i < ins.size(); i++) {
                 if(ins[i] == suggested_element.name) {
                     element.ins.emplace_back(suggested_element);
@@ -106,14 +105,14 @@ public:
     }
 
     //Method to handle elements with lacking bonds
-    void request_handling() {
-        while(!_queue.empty()) {
-            for (int i = 0; i < _queue.size(); i++) {
+    void queue_handling() {
+        while(!queue.empty()) {
+            for (int i = 0; i < queue.size(); i++) {
                 //Going through every element of the scheme to find ones that are in the queue and connecting them to the inputs
-                for (int j = 0; j < _scheme.size(); j++) {
-                    if (std::get<0>(_queue[i]).name == _scheme[j].name) {
-                        if (!check_inputs(_scheme[j], std::get<1>(_queue[i]))) {
-                            _queue.erase(_queue.begin() + i);
+                for (int j = 0; j < scheme.size(); j++) {
+                    if (std::get<0>(queue[i]).name == scheme[j].name) {
+                        if (!connection_search(scheme[j], std::get<1>(queue[i]))) {
+                            queue.erase(queue.begin() + i);
                             i--;
                         }
                     }
@@ -123,7 +122,7 @@ public:
     }
 
     void output() {
-        for(auto vert : _scheme) {
+        for(auto vert : scheme) {
             std::cout << vert.type << ' ' << vert.name << ' ' << vert.layer << " INS: ";
             for(auto ins : vert.ins) {
                 std::cout << ins.name << ' ';
@@ -131,37 +130,37 @@ public:
             std::cout << std::endl;
         }
         std::cout << "\n============\n";
-        for(auto requests : _queue) {
+        for(auto requests : queue) {
             std::cout << std::get<0>(requests).type;
         }
     }
 
-    std::vector<Vertex> _scheme;
-    std::vector< std::tuple< Vertex, std::vector< std::string > > > _queue;
-    int _outputNum;
+    std::vector<Vertex> scheme;
+    std::vector< std::tuple< Vertex, std::vector< std::string > > > queue;
+    int outputNum;
 };
 
 class bench_parser : public lorina::bench_reader {
 public:
-    explicit bench_parser(logic_scheme& logicScheme) : _scheme(logicScheme) {}
+    explicit bench_parser(logic_scheme& logicScheme) : scheme(logicScheme) {}
 
     virtual void on_input(const std::string& name) const override {
-        _scheme.add_input(name);
+        scheme.add_input(name);
     }
 
     virtual void on_output(const std::string& name) const override {
-        _scheme.add_output(name);
+        scheme.add_output(name);
     }
 
     virtual void on_dff(const std::string &input, const std::string &output) const override {
-        _scheme.add_dff(input, output);
+        scheme.add_dff(input, output);
     }
 
     virtual void on_gate(const std::vector<std::string>& inputs, const std::string& output, const std::string& type) const override {
-        _scheme.add_gate(inputs, output, type);
+        scheme.add_gate(inputs, output, type);
     }
 
-    logic_scheme& _scheme;
+    logic_scheme& scheme;
 };
 
 void buildRectangles(std::vector<Vertex>& elems, std::vector<SDL_FRect>& rects, std::vector<Line>& connections, int maxElem, double height, double width) {
@@ -269,8 +268,7 @@ int main(int argc, char* argv[]) {
     auto result = lorina::read_bench(filename, parser);
     if(result != lorina::return_code::success) return -2;
 
-    //Clearing the queue
-    logicScheme.request_handling();
+    logicScheme.queue_handling();
     logicScheme.output();
 
     SDL_Window* window = nullptr;
@@ -282,14 +280,14 @@ int main(int argc, char* argv[]) {
 
     //Finding total number of layers in element with max layer
     int layersNum = 0;
-    for(auto element : logicScheme._scheme) {
+    for(auto element : logicScheme.scheme) {
         if(element.layer > layersNum) layersNum = element.layer;
     }
     layersNum++;
 
     //Sorting elements in order by layers
     std::vector<std::vector<Vertex>> elements_by_layers(layersNum);
-    for(Vertex& element : logicScheme._scheme) {
+    for(Vertex& element : logicScheme.scheme) {
         elements_by_layers[element.layer].emplace_back(element);
     }
 
