@@ -19,7 +19,7 @@ struct Vertex {
     std::string type;
     std::string name;
     int layer;
-    std::vector<Vertex> ins;
+    std::vector<int> ins;
     SDL_FRect position;
 };
 
@@ -87,11 +87,11 @@ public:
 
     //Method to check whether demanded input exists or not and connect it if possible
     bool connection_search(Vertex& element, std::vector<std::string>& ins) {
-        for(Vertex& suggested_element : scheme) {
+        for(int j = 0; j < scheme.size(); j++) {
             for(int i = 0; i < ins.size(); i++) {
-                if(ins[i] == suggested_element.name) {
-                    element.ins.emplace_back(suggested_element);
-                    element.layer = suggested_element.layer + 1;
+                if(ins[i] == scheme[j].name) {
+                    element.ins.emplace_back(j);
+                    element.layer = scheme[j].layer + 1;
                     ins.erase(ins.begin() + i);
                     i--;
                 }
@@ -123,7 +123,7 @@ public:
         for(auto vert : scheme) {
             std::cout << vert.type << ' ' << vert.name << ' ' << vert.layer << " INS: ";
             for(auto ins : vert.ins) {
-                std::cout << ins.name << ' ';
+                std::cout << scheme[ins].name << ' ';
             }
             std::cout << std::endl;
         }
@@ -161,40 +161,36 @@ public:
     logic_scheme& scheme;
 };
 
-void setPosition(std::vector<Vertex>& elements, const int max_elements, const float height, const float width, const int screen_height) {
+void setPosition(std::vector<Vertex*> elements, const int max_elements, const float height, const float width, const int screen_height) {
     int count = 0;
     int freeSpaces = elements.size() + 1;
     float step = (screen_height - height * elements.size()) / freeSpaces;
-    for(Vertex& elem : elements) {
-        elem.position.x = elem.layer * HSPACING * width;
-        elem.position.h = height;
-        elem.position.w = width;
+    for(Vertex* elem : elements) {
+        elem->position.x = elem->layer * HSPACING * width;
+        elem->position.h = height;
+        elem->position.w = width;
 
         if (elements.size() == max_elements) {
-            elem.position.y = count * VSPACING * height;
+            elem->position.y = count * VSPACING * height;
         }
         else {
-            elem.position.y = step * (count + 1) + height * count;
+            elem->position.y = step * (count + 1) + height * count;
         }
 
         count++;
     }
 }
 
-void setConnections(Vertex& element, const std::vector<std::vector<Vertex>> elements, std::vector<Line>& connections) {
-    for(auto input : element.ins) {
-        for(auto layered_elements : elements) {
-            for(auto compared_element : layered_elements) {
-                if(input.name == compared_element.name) {
-                    Line connect;
-                    connect.x1 = compared_element.position.x + compared_element.position.w;
-                    connect.y1 = compared_element.position.y + compared_element.position.h/2;
-                    connect.x2 = element.position.x;
-                    connect.y2 = element.position.y + element.position.h/2;
-                    connections.emplace_back(connect);
-                }
-            }
-        }
+void setConnections(Vertex* element, const std::vector<Vertex>& scheme, std::vector<Line>& connections) {
+    for(int input : element->ins) {
+        std::cout << input << ' ';
+        Line connect;
+        connect.x1 = scheme[input].position.x + scheme[input].position.w;
+        connect.y1 = scheme[input].position.y + scheme[input].position.h/2;
+        connect.x2 = element->position.x;
+        connect.y2 = element->position.y + element->position.h/2;
+
+        connections.push_back(connect);
     }
 }
 
@@ -218,7 +214,6 @@ int main(int argc, char* argv[]) {
     SDL_Renderer* renderer = nullptr;
     std::vector<Line> connections;
 
-
     if(SDL_Init(SDL_INIT_VIDEO) < 0) return -3;
 
     SDL_GetCurrentDisplayMode(0, &displayMode);
@@ -236,14 +231,14 @@ int main(int argc, char* argv[]) {
     layersNum++;
 
     //Sorting elements in order by layers
-    std::vector<std::vector<Vertex>> elements_by_layers(layersNum);
-    for(Vertex& element : logicScheme.scheme) {
-        elements_by_layers[element.layer].emplace_back(element);
+    std::vector<std::vector<Vertex*>> elements_by_layers(layersNum);
+    for(int i = 0; i < logicScheme.scheme.size(); i++) {
+        elements_by_layers[logicScheme.scheme[i].layer].push_back(&logicScheme.scheme[i]);
     }
 
     //Finding the number of elements in layer with the most elements
     int maxElems = 0;
-    for(auto elements : elements_by_layers) {
+    for(std::vector<Vertex*> elements : elements_by_layers) {
         if(elements.size() > maxElems) {
             maxElems = elements.size();
         }
@@ -254,14 +249,14 @@ int main(int argc, char* argv[]) {
 
     std::cout << rectWidth << ' ' << rectHeight;
 
-    for(std::vector<Vertex>& elements : elements_by_layers) {
+    for(std::vector<Vertex*> elements : elements_by_layers) {
         setPosition(elements, maxElems, rectHeight, rectWidth, screen_height);
     }
 
     std::vector<Line> connection_lines;
-    for(std::vector<Vertex>& elements : elements_by_layers) {
-        for(Vertex& element : elements) {
-            setConnections(element, elements_by_layers, connection_lines);
+    for(std::vector<Vertex*> elements : elements_by_layers) {
+        for(Vertex* element : elements) {
+            setConnections(element, logicScheme.scheme, connection_lines);
         }
     }
 
@@ -270,10 +265,8 @@ int main(int argc, char* argv[]) {
     SDL_SetRenderDrawColor(renderer, 255,255,255, SDL_ALPHA_OPAQUE);
 
     //Placing elements on the screen
-    for(auto elements : elements_by_layers) {
-        for(auto element : elements) {
-            SDL_RenderDrawRectF(renderer, &element.position);
-        }
+    for(Vertex element : logicScheme.scheme) {
+        SDL_RenderDrawRectF(renderer, &element.position);
     }
 
     //Placing connection lines on the screen
