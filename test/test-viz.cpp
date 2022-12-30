@@ -114,17 +114,17 @@ public:
         }
     }
 
-    void output() {
-        for(auto vert : scheme) {
-            std::cout << vert.type << ' ' << vert.name << ' ' << vert.layer << " INS: ";
+    void output(std::ostream& out) {
+        for(Vertex& vert : scheme) {
+            out << vert.type << ' ' << vert.name << ' ' << vert.layer << " INS: ";
             for(auto ins : vert.ins) {
-                std::cout << scheme[ins].name << ' ';
+                out << scheme[ins].name << ' ';
             }
             std::cout << std::endl;
         }
-        std::cout << "\n============\n";
-        for(auto requests : queue) {
-            std::cout << std::get<0>(requests).type;
+        std::cout << "\n====QUEUE===\n";
+        for(auto &requests : queue) {
+            out << std::get<0>(requests).type;
         }
     }
 
@@ -177,8 +177,7 @@ void setPosition(std::vector<Vertex*> elements, const int max_elements, const fl
 }
 
 void setConnections(Vertex* element, const std::vector<Vertex>& scheme, std::vector<Line>& connections) {
-    for(int input : element->ins) {
-        std::cout << input << ' ';
+    for(int& input : element->ins) {
         Line connect;
         connect.x1 = scheme[input].position.x + scheme[input].position.w;
         connect.y1 = scheme[input].position.y + scheme[input].position.h/2;
@@ -202,7 +201,7 @@ int main(int argc, char* argv[]) {
     if(result != lorina::return_code::success) return -2;
 
     logicScheme.queue_handling();
-    logicScheme.output();
+    logicScheme.output(std::cout);
 
     SDL_DisplayMode displayMode;
     SDL_Window* window = nullptr;
@@ -220,7 +219,7 @@ int main(int argc, char* argv[]) {
 
     //Finding total number of layers in element with max layer
     int layersNum = 0;
-    for(auto element : logicScheme.scheme) {
+    for(Vertex& element : logicScheme.scheme) {
         if(element.layer > layersNum) layersNum = element.layer;
     }
     layersNum++;
@@ -233,7 +232,7 @@ int main(int argc, char* argv[]) {
 
     //Finding the number of elements in layer with the most elements
     int maxElems = 0;
-    for(std::vector<Vertex*> elements : elements_by_layers) {
+    for(std::vector<Vertex*>& elements : elements_by_layers) {
         if(elements.size() > maxElems) {
             maxElems = elements.size();
         }
@@ -242,14 +241,12 @@ int main(int argc, char* argv[]) {
     const float rectHeight = screen_height/(VSPACING*maxElems);
     const float rectWidth = screen_width/(HSPACING*layersNum);
 
-    std::cout << rectWidth << ' ' << rectHeight;
-
-    for(std::vector<Vertex*> elements : elements_by_layers) {
+    for(std::vector<Vertex*>& elements : elements_by_layers) {
         setPosition(elements, maxElems, rectHeight, rectWidth, screen_height);
     }
 
     std::vector<Line> connection_lines;
-    for(std::vector<Vertex*> elements : elements_by_layers) {
+    for(std::vector<Vertex*>& elements : elements_by_layers) {
         for(Vertex* element : elements) {
             setConnections(element, logicScheme.scheme, connection_lines);
         }
@@ -260,12 +257,12 @@ int main(int argc, char* argv[]) {
     SDL_SetRenderDrawColor(renderer, 255,255,255, SDL_ALPHA_OPAQUE);
 
     //Placing elements on the screen
-    for(Vertex element : logicScheme.scheme) {
+    for(Vertex& element : logicScheme.scheme) {
         SDL_RenderDrawRectF(renderer, &element.position);
     }
 
     //Placing connection lines on the screen
-    for(auto line : connection_lines) {
+    for(Line& line : connection_lines) {
         SDL_RenderDrawLineF(renderer, line.x1, line.y1, line.x2, line.y2);
     }
 
