@@ -43,7 +43,7 @@ public:
         input.name = name;
         input.layer = 0;
 
-        scheme.emplace_back(input);
+        scheme.push_back(input);
     }
 
     void add_output(const std::string& input) {
@@ -53,12 +53,9 @@ public:
 
         outputNum++;
 
-        std::vector<std::string> ins;
-        ins.emplace_back(input);
+        queue.emplace_back(output, input);
 
-        queue.emplace_back(output, ins);
-
-        scheme.emplace_back(output);
+        scheme.push_back(output);
     }
 
     void add_dff(const std::string& input, const std::string& output) {
@@ -67,12 +64,9 @@ public:
         dff.type = "DFF";
         dff.name = output;
 
-        std::vector<std::string> ins;
-        ins.emplace_back(input);
+        if(!connection_search(dff, input)) queue.emplace_back(dff, input);
 
-        if(connection_search(dff, ins)) queue.emplace_back(dff, ins);
-
-        scheme.emplace_back(dff);
+        scheme.push_back(dff);
     }
 
     void add_gate(std::vector<std::string> inputs, const std::string& output, const std::string& type) {
@@ -80,38 +74,39 @@ public:
         gate.type = type;
         gate.name = output;
 
-        if(connection_search(gate, inputs)) queue.emplace_back(gate, inputs);
+        for(int i = 0; i < inputs.size(); i++) {
+            if(connection_search(gate, inputs[i])) inputs.erase(inputs.begin() + i);
+        }
 
-        scheme.emplace_back(gate);
+        for(std::string input : inputs) {
+            queue.emplace_back(gate, input);
+        }
+
+        scheme.push_back(gate);
     }
 
     //Method to check whether demanded input exists or not and connect it if possible
-    bool connection_search(Vertex& element, std::vector<std::string>& ins) {
+    bool connection_search(Vertex& element, const std::string& input) {
         for(int j = 0; j < scheme.size(); j++) {
-            for(int i = 0; i < ins.size(); i++) {
-                if(ins[i] == scheme[j].name) {
-                    element.ins.emplace_back(j);
-                    element.layer = scheme[j].layer + 1;
-                    ins.erase(ins.begin() + i);
-                    i--;
-                }
+            if(scheme[j].name == input) {
+                element.ins.push_back(j);
+                element.layer = scheme[j].layer + 1;
+                return true;
             }
         }
-
-        if(ins.empty()) return false;
-        return true;
+        return false;
     }
 
-    //Method to handle elements with lacking bonds
+    //Method to search where scheme overlaps queue and to search for connection in those elements
     void queue_handling() {
         while(!queue.empty()) {
-            for (int i = 0; i < queue.size(); i++) {
-                //Going through every element of the scheme to find ones that are in the queue and connecting them to the inputs
-                for (int j = 0; j < scheme.size(); j++) {
-                    if (std::get<0>(queue[i]).name == scheme[j].name) {
-                        if (!connection_search(scheme[j], std::get<1>(queue[i]))) {
-                            queue.erase(queue.begin() + i);
-                            i--;
+            for(int i = 0; i < scheme.size(); i++) {
+                for(int j = 0; j < queue.size(); j++) {
+                    if(scheme[i].name == std::get<0>(queue[j]).name) {
+                        if(connection_search(scheme[i], std::get<1>(queue[j]))) {
+                            queue.erase(queue.begin() + j);
+                            j--;
+                            continue;
                         }
                     }
                 }
@@ -134,7 +129,7 @@ public:
     }
 
     std::vector<Vertex> scheme;
-    std::vector< std::tuple< Vertex, std::vector< std::string > > > queue;
+    std::vector<std::tuple<Vertex, std::string>> queue;
     int outputNum;
 };
 
