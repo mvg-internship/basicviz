@@ -23,7 +23,15 @@ struct Vertex {
     SDL_FRect position;
 };
 
-struct Line {
+class Line {
+public:
+    explicit Line(const Vertex& first, const Vertex& second) {
+        x1 = first.position.x + first.position.w;
+        y1 = first.position.y + first.position.h/2;
+        x2 = second.position.x;
+        y2 = second.position.y + second.position.h/2;
+    }
+
     double x1;
     double y1;
     double x2;
@@ -178,12 +186,7 @@ void setPosition(std::vector<Vertex*> elements, const int max_elements, const fl
 
 void setConnections(Vertex* element, const std::vector<Vertex>& scheme, std::vector<Line>& connections) {
     for(int& input : element->ins) {
-        Line connect;
-        connect.x1 = scheme[input].position.x + scheme[input].position.w;
-        connect.y1 = scheme[input].position.y + scheme[input].position.h/2;
-        connect.x2 = element->position.x;
-        connect.y2 = element->position.y + element->position.h/2;
-
+        Line connect(scheme[input], *element);
         connections.push_back(connect);
     }
 }
