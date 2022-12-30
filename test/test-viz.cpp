@@ -15,6 +15,12 @@ enum SPACING {
     VSPACING = 2
 };
 
+enum ERROR_CODES {
+    EMPTY_FILENAME = -1,
+    PARSER_FAILURE = -2,
+    SDL_INIT_FAILURE = -3
+};
+
 struct Vertex {
     std::string type;
     std::string name;
@@ -193,15 +199,23 @@ void setConnections(Vertex* element, const std::vector<Vertex>& scheme, std::vec
 
 int main(int argc, char* argv[]) {
 
-    if(argc != 2) return -1;
+    std::cout << "Enter the file path: ";
+    std::string filename;
+    std::cin >> filename;
 
-    std::string filename(argv[1]);
+    if(filename.empty()) {
+        std::cout << "Empty filename\n";
+        return EMPTY_FILENAME;
+    }
 
     logic_scheme logicScheme;
 
     bench_parser parser(logicScheme);
     auto result = lorina::read_bench(filename, parser);
-    if(result != lorina::return_code::success) return -2;
+    if(result == lorina::return_code::parse_error) {
+        std::cout << "Parser failure\n";
+        return PARSER_FAILURE;
+    }
 
     logicScheme.queue_handling();
     logicScheme.output(std::cout);
@@ -211,7 +225,10 @@ int main(int argc, char* argv[]) {
     SDL_Renderer* renderer = nullptr;
     std::vector<Line> connections;
 
-    if(SDL_Init(SDL_INIT_VIDEO) < 0) return -3;
+    if(SDL_Init(SDL_INIT_VIDEO) < 0) {
+        std::cout << "SDL could not be initialized";
+        return SDL_INIT_FAILURE;
+    }
 
     SDL_GetCurrentDisplayMode(0, &displayMode);
     const int screen_height = displayMode.h;
