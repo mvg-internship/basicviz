@@ -197,6 +197,25 @@ void setConnections(Vertex* element, const std::vector<Vertex>& scheme, std::vec
     }
 }
 
+void drawElementsAndConnections(SDL_Renderer* renderer, const logic_scheme& elements, const std::vector<Line>& connections) {
+    SDL_SetRenderDrawColor(renderer, 255,255,255, SDL_ALPHA_OPAQUE);
+
+    //Placing elements on the screen
+    for(const Vertex& element : elements.scheme) {
+        SDL_RenderDrawRectF(renderer, &element.position);
+    }
+
+    //Placing connection lines on the screen
+    for(const Line& connection_line : connections) {
+        SDL_RenderDrawLineF(renderer, connection_line.x1, connection_line.y1, connection_line.x2, connection_line.y2);
+    }
+}
+
+void drawBackground(SDL_Renderer* renderer) {
+    SDL_SetRenderDrawColor(renderer, 0,0,0, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(renderer);
+}
+
 int main(int argc, char* argv[]) {
 
     std::cout << "Enter the file path: ";
@@ -272,19 +291,8 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    SDL_SetRenderDrawColor(renderer, 0,0,0, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(renderer);
-    SDL_SetRenderDrawColor(renderer, 255,255,255, SDL_ALPHA_OPAQUE);
-
-    //Placing elements on the screen
-    for(Vertex& element : logicScheme.scheme) {
-        SDL_RenderDrawRectF(renderer, &element.position);
-    }
-
-    //Placing connection lines on the screen
-    for(Line& line : connection_lines) {
-        SDL_RenderDrawLineF(renderer, line.x1, line.y1, line.x2, line.y2);
-    }
+    drawBackground(renderer);
+    drawElementsAndConnections(renderer, logicScheme, connection_lines);
 
     SDL_RenderPresent(renderer);
 
