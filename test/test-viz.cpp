@@ -16,7 +16,7 @@ enum {
 };
 
 enum ErrorCode {
-    EMPTY_FILENAME = 1,
+    NO_FILENAME_PROVIDED = 1,
     PARSER_FAILURE,
     SDL_INIT_FAILURE
 };
@@ -170,7 +170,7 @@ public:
     logic_scheme& scheme;
 };
 
-void setRectangle(std::vector<vertex*> elements, const int max_elements, const float height, const float width, const int screen_height) {
+void setRectangle(std::vector<vertex*>& elements, const int max_elements, const float height, const float width, const int screen_height) {
     int count = 0;
     int freeSpaces = elements.size() + 1;
     float step = (screen_height - height * elements.size()) / freeSpaces;
@@ -190,9 +190,9 @@ void setRectangle(std::vector<vertex*> elements, const int max_elements, const f
     }
 }
 
-void setConnections(vertex* element, const std::vector<vertex>& scheme, std::vector<line>& connections) {
-    for(int& input : element->ins) {
-        line connect(scheme[input], *element);
+void setConnections(const vertex& element, const std::vector<vertex>& scheme, std::vector<line>& connections) {
+    for(int input : element.ins) {
+        line connect(scheme[input], element);
         connections.push_back(connect);
     }
 }
@@ -218,21 +218,19 @@ void drawBackground(SDL_Renderer* renderer) {
 
 int main(int argc, char* argv[]) {
 
-    std::cout << "Enter the file path: ";
-    std::string filename;
-    std::cin >> filename;
-
-    if(filename.empty()) {
-        std::cout << "Empty filename\n";
-        return EMPTY_FILENAME;
+    if(argc < 2) {
+        std::cerr << "Filename was not provided\n";
+        return NO_FILENAME_PROVIDED;
     }
+
+    std::string filename(argv[1]);
 
     logic_scheme logicScheme;
 
     bench_parser parser(logicScheme);
     auto result = lorina::read_bench(filename, parser);
     if(result == lorina::return_code::parse_error) {
-        std::cout << "Parser failure\n";
+        std::cerr << "Parser failure\n";
         return PARSER_FAILURE;
     }
 
@@ -245,7 +243,7 @@ int main(int argc, char* argv[]) {
     std::vector<line> connections;
 
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
-        std::cout << "SDL could not be initialized";
+        std::cerr << "SDL could not be initialized";
         return SDL_INIT_FAILURE;
     }
 
@@ -287,7 +285,7 @@ int main(int argc, char* argv[]) {
     std::vector<line> connection_lines;
     for(std::vector<vertex*>& elements : elements_by_layers) {
         for(vertex* element : elements) {
-            setConnections(element, logicScheme.scheme, connection_lines);
+            setConnections(*element, logicScheme.scheme, connection_lines);
         }
     }
 
