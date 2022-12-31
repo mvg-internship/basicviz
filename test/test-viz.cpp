@@ -31,11 +31,21 @@ struct vertex {
 
 class line {
 public:
-    explicit line(const vertex& first, const vertex& second) {
-        x1 = first.rectangle.x + first.rectangle.w;
-        y1 = first.rectangle.y + first.rectangle.h/2;
-        x2 = second.rectangle.x;
-        y2 = second.rectangle.y + second.rectangle.h/2;
+    static line rightToLeftLine(const SDL_FRect &src, const SDL_FRect &dst) {
+        double x1, y1, x2, y2;
+        getRight(src, x1, y1);
+        getLeft(dst, x2, y2);
+        return { x1, y1, x2, y2 };
+    }
+
+    static void getRight(const SDL_FRect &rect, double &x, double &y) {
+        x = rect.x + rect.w;
+        y = rect.y + rect.h / 2;
+    }
+
+    static void getLeft(const SDL_FRect &rect, double &x, double &y) {
+        x = rect.x;
+        y = rect.y + rect.h / 2;
     }
 
     double x1;
@@ -192,7 +202,7 @@ void setRectangle(std::vector<vertex*>& elements, const int max_elements, const 
 
 void setConnections(const vertex& element, const std::vector<vertex>& scheme, std::vector<line>& connections) {
     for(int input : element.ins) {
-        line connect(scheme[input], element);
+        line connect(line::rightToLeftLine(scheme[input].rectangle, element.rectangle));
         connections.push_back(connect);
     }
 }
