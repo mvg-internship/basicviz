@@ -1,6 +1,0 @@
-/Users/fake.andrey/CLionProjects/basicviz/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/fake.andrey/CLionProjects/basicviz/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/Users/fake.andrey/CLionProjects/basicviz/cmake-build-debug/test/CMakeFiles/benchstat.dir
-/Users/fake.andrey/CLionProjects/basicviz/cmake-build-debug/test/CMakeFiles/ttf-sample.dir
-/Users/fake.andrey/CLionProjects/basicviz/cmake-build-debug/test/CMakeFiles/edit_cache.dir
-/Users/fake.andrey/CLionProjects/basicviz/cmake-build-debug/test/CMakeFiles/rebuild_cache.dir
