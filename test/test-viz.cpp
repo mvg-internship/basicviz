@@ -7,7 +7,6 @@
 #include <lorina/bench.hpp>
 
 #define SDL_MAIN_HANDLED
-
 #include <SDL.h>
 
 enum {
@@ -27,6 +26,11 @@ struct vertex {
     int layer;
     std::vector<int> ins;
     SDL_FRect rectangle;
+};
+
+struct pending_connection {
+    vertex elementToBind;
+    std::string input;
 };
 
 class line {
@@ -77,7 +81,7 @@ public:
 
         outputNum++;
 
-        queue.emplace_back(output, input);
+        push_back_queue(output, input);
 
         scheme.push_back(output);
     }
@@ -88,7 +92,7 @@ public:
         dff.type = "DFF";
         dff.name = output;
 
-        if(!connect(dff, input)) queue.emplace_back(dff, input);
+        if(!connect(dff, input)) push_back_queue(dff, input);
 
         scheme.push_back(dff);
     }
@@ -99,11 +103,7 @@ public:
         gate.name = output;
 
         for(int i = 0; i < inputs.size(); i++) {
-            if(connect(gate, inputs[i])) inputs.erase(inputs.begin() + i);
-        }
-
-        for(std::string input : inputs) {
-            queue.emplace_back(gate, input);
+            if(!connect(gate, inputs[i])) push_back_queue(gate, inputs[i]);
         }
 
         scheme.push_back(gate);
@@ -126,8 +126,8 @@ public:
         while(!queue.empty()) {
             for(int i = 0; i < scheme.size(); i++) {
                 for(int j = 0; j < queue.size(); j++) {
-                    if(scheme[i].name == std::get<0>(queue[j]).name) {
-                        if(connect(scheme[i], std::get<1>(queue[j]))) {
+                    if(scheme[i].name == queue[j].elementToBind.name) {
+                        if(connect(scheme[i], queue[j].input)) {
                             queue.erase(queue.begin() + j);
                             j--;
                             continue;
@@ -136,6 +136,13 @@ public:
                 }
             }
         }
+    }
+
+    void push_back_queue(const vertex& elementToBind, const std::string& input) {
+        pending_connection queued_element;
+        queued_element.elementToBind = elementToBind;
+        queued_element.input = input;
+        queue.push_back(queued_element);
     }
 
     void print(std::ostream& out) {
@@ -147,13 +154,13 @@ public:
             out << std::endl;
         }
         out << "\n====QUEUE===\n";
-        for(auto &requests : queue) {
-            out << std::get<0>(requests).type;
+        for(auto &queued_element : queue) {
+            out << queued_element.elementToBind.type << ' ' << queued_element.elementToBind.name << "IN: " << queued_element.input << std::endl;
         }
     }
 
     std::vector<vertex> scheme;
-    std::vector<std::tuple<vertex, std::string>> queue;
+    std::vector<pending_connection> queue;
     int outputNum;
 };
 
