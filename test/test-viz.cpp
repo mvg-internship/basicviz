@@ -1,8 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <tuple>
-#include <variant>
 
 #include <lorina/bench.hpp>
 
@@ -35,27 +33,27 @@ struct pending_connection {
 
 class line {
 public:
-    static line rightToLeftLine(const SDL_FRect &src, const SDL_FRect &dst) {
-        double x1, y1, x2, y2;
-        getRight(src, x1, y1);
-        getLeft(dst, x2, y2);
+    static line right_to_left_line(const SDL_FRect &src, const SDL_FRect &dst) {
+        float x1, y1, x2, y2;
+        get_right(src, x1, y1);
+        get_left(dst, x2, y2);
         return { x1, y1, x2, y2 };
     }
 
-    static void getRight(const SDL_FRect &rect, double &x, double &y) {
+    static void get_right(const SDL_FRect &rect, float &x, float &y) {
         x = rect.x + rect.w;
         y = rect.y + rect.h / 2;
     }
 
-    static void getLeft(const SDL_FRect &rect, double &x, double &y) {
+    static void get_left(const SDL_FRect &rect, float &x, float &y) {
         x = rect.x;
         y = rect.y + rect.h / 2;
     }
 
-    double x1;
-    double y1;
-    double x2;
-    double y2;
+    float x1;
+    float y1;
+    float x2;
+    float y2;
 };
 
 class logic_scheme {
@@ -187,9 +185,9 @@ public:
     logic_scheme& scheme;
 };
 
-void setRectangle(std::vector<vertex*>& elements, const int max_elements, const float height, const float width, const int screen_height) {
+void setRectangle(std::vector<vertex*>& elements, const unsigned int max_elements, const float height, const float width, const int screen_height) {
     int count = 0;
-    int freeSpaces = elements.size() + 1;
+    unsigned int freeSpaces = elements.size() + 1;
     float step = (screen_height - height * elements.size()) / freeSpaces;
     for(vertex* elem : elements) {
         elem->rectangle.x = elem->layer * HSPACING * width;
@@ -209,7 +207,7 @@ void setRectangle(std::vector<vertex*>& elements, const int max_elements, const 
 
 void setConnections(const vertex& element, const std::vector<vertex>& scheme, std::vector<line>& connections) {
     for(int input : element.ins) {
-        line connect(line::rightToLeftLine(scheme[input].rectangle, element.rectangle));
+        line connect(line::right_to_left_line(scheme[input].rectangle, element.rectangle));
         connections.push_back(connect);
     }
 }
@@ -223,6 +221,7 @@ void drawElementsAndConnections(SDL_Renderer* renderer, const logic_scheme& elem
     }
 
     //Placing connection lines on the screen
+    std::cout << "LINES:" << std::endl;
     for(const line& connection_line : connections) {
         SDL_RenderDrawLineF(renderer, connection_line.x1, connection_line.y1, connection_line.x2, connection_line.y2);
     }
@@ -233,94 +232,105 @@ void drawBackground(SDL_Renderer* renderer) {
     SDL_RenderClear(renderer);
 }
 
-int main(int argc, char* argv[]) {
-
-    if(argc < 2) {
-        std::cerr << "Filename was not provided\n";
-        return NO_FILENAME_PROVIDED;
-    }
-
-    std::string filename(argv[1]);
-
-    logic_scheme logicScheme;
+bool parseInput(char* arg, logic_scheme& logicScheme) {
+    std::string filename(arg);
 
     bench_parser parser(logicScheme);
     auto result = lorina::read_bench(filename, parser);
-    if(result == lorina::return_code::parse_error) {
-        std::cerr << "Parser failure\n";
-        return PARSER_FAILURE;
-    }
+    if(result == lorina::return_code::parse_error) return false;
 
     logicScheme.find_and_connect_overlaps();
     logicScheme.print(std::cout);
 
-    SDL_DisplayMode displayMode;
-    SDL_Window* window = nullptr;
-    SDL_Renderer* renderer = nullptr;
-    std::vector<line> connections;
+    return true;
+}
 
-    if(SDL_Init(SDL_INIT_VIDEO) < 0) {
-        std::cerr << "SDL could not be initialized";
-        return SDL_INIT_FAILURE;
-    }
-
-    SDL_GetCurrentDisplayMode(0, &displayMode);
-    const int screen_height = displayMode.h;
-    const int screen_width = displayMode.w;
-
-    window = SDL_CreateWindow("test-viz", 0, 0, screen_width, screen_height, SDL_WINDOW_SHOWN);
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
-    //Finding total number of layers in element with max layer
+std::vector<line> prepareDrawData(logic_scheme& logicScheme, const int screen_h, const int screen_w) {
+    //Finding number of layers by finding the max layer number
     int layersNum = 0;
-    for(vertex& element : logicScheme.scheme) {
+    for(const vertex& element : logicScheme.scheme) {
         if(element.layer > layersNum) layersNum = element.layer;
     }
     layersNum++;
 
-    //Sorting elements in order by layers
-    std::vector<std::vector<vertex*>> elements_by_layers(layersNum);
-    for(int i = 0; i < logicScheme.scheme.size(); i++) {
-        elements_by_layers[logicScheme.scheme[i].layer].push_back(&logicScheme.scheme[i]);
+    //Creating vector with pre-allocated space and filling it layerNum-wise
+    std::vector<std::vector<vertex*>> elementsByLayers(layersNum);
+    for(auto & i : logicScheme.scheme) {
+        elementsByLayers[i.layer].push_back(&i);
     }
 
     //Finding the number of elements in layer with the most elements
-    int maxElems = 0;
-    for(std::vector<vertex*>& elements : elements_by_layers) {
+    unsigned int maxElems = 0;
+    for(std::vector<vertex*>& elements : elementsByLayers) {
         if(elements.size() > maxElems) {
             maxElems = elements.size();
         }
     }
 
-    const float rectHeight = screen_height/(VSPACING*maxElems);
-    const float rectWidth = screen_width/(HSPACING*layersNum);
+    const float rectHeight = screen_h/(VSPACING*maxElems);
+    const float rectWidth = screen_w/(HSPACING*layersNum);
 
-    for(std::vector<vertex*>& elements : elements_by_layers) {
-        setRectangle(elements, maxElems, rectHeight, rectWidth, screen_height);
+    for(std::vector<vertex*>& elements : elementsByLayers) {
+        setRectangle(elements, maxElems, rectHeight, rectWidth, screen_h);
     }
 
-    std::vector<line> connection_lines;
-    for(std::vector<vertex*>& elements : elements_by_layers) {
+    std::vector<line> connectionLines;
+    for(std::vector<vertex*>& elements : elementsByLayers) {
         for(vertex* element : elements) {
-            setConnections(*element, logicScheme.scheme, connection_lines);
+            setConnections(*element, logicScheme.scheme, connectionLines);
         }
     }
 
-    drawBackground(renderer);
-    drawElementsAndConnections(renderer, logicScheme, connection_lines);
+    return connectionLines;
+}
 
+int main(int argc, char* argv[]) {
+
+    //Parsing bench file
+    if(argc < 2) {
+        std::cerr << "Filename was not provided\n";
+        return NO_FILENAME_PROVIDED;
+    }
+
+    logic_scheme logicScheme;
+
+    if(!parseInput(argv[1], logicScheme)) {
+        std::cerr << "Parser failure\n";
+        return PARSER_FAILURE;
+    }
+
+    //SDL initialization
+    if(SDL_Init(SDL_INIT_VIDEO) < 0) {
+        std::cerr << "SDL could not be initialized";
+        return SDL_INIT_FAILURE;
+    }
+
+    SDL_DisplayMode displayInfo;
+    SDL_GetCurrentDisplayMode(0, &displayInfo);
+
+    SDL_Window* window = nullptr;
+    window = SDL_CreateWindow("test-viz", 0, 0, displayInfo.w, displayInfo.h, SDL_WINDOW_SHOWN);
+
+    SDL_Renderer* renderer = nullptr;
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    //Prepare draw data and draw
+    drawBackground(renderer);
+    drawElementsAndConnections(renderer, logicScheme, prepareDrawData(logicScheme, displayInfo.h, displayInfo.w));
     SDL_RenderPresent(renderer);
 
+    //Event loop
     bool isRunning = true;
     while(isRunning) {
         SDL_Event event;
-
         while(SDL_PollEvent(&event)) {
             if(event.type == SDL_QUIT) isRunning = false;
         }
     }
-    SDL_DestroyWindow(window);
 
+    //Shutdown
+    SDL_DestroyWindow(window);
     SDL_Quit();
+
     return 0;
 }
