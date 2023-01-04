@@ -123,12 +123,12 @@ public:
     void find_and_connect_overlaps() {
         while(!queue.empty()) {
             for(int i = 0; i < scheme.size(); i++) {
-                for(int j = 0; j < queue.size(); j++) {
-                    if(scheme[i].name == queue[j].elementToBind.name) {
-                        if(connect(scheme[i], queue[j].input)) {
-                            queue.erase(queue.begin() + j);
+                for(auto j = queue.begin(); j != queue.end(); j++) {
+                    std::cout << "qeueu ";
+                    if(scheme[i].name == j->elementToBind.name) {
+                        if(connect(scheme[i], j->input)) {
+                            j = queue.erase(j);
                             j--;
-                            continue;
                         }
                     }
                 }
@@ -158,7 +158,7 @@ public:
     }
 
     std::vector<vertex> scheme;
-    std::vector<pending_connection> queue;
+    std::list<pending_connection> queue;
     int outputNum;
 };
 
@@ -221,7 +221,6 @@ void drawElementsAndConnections(SDL_Renderer* renderer, const logic_scheme& elem
     }
 
     //Placing connection lines on the screen
-    std::cout << "LINES:" << std::endl;
     for(const line& connection_line : connections) {
         SDL_RenderDrawLineF(renderer, connection_line.x1, connection_line.y1, connection_line.x2, connection_line.y2);
     }
