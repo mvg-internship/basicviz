@@ -18,10 +18,10 @@
 
 using namespace lorina;
 
-struct parametrs {
+struct parameters {
     std::vector<std::string> inputs;
-    std::string type = NULL;
-    std::string output = NULL;
+    std::string type = "";
+    std::string output = "";
 
     //coordinates of first and second points
     float fp_x= 0;
@@ -33,7 +33,7 @@ struct parametrs {
     int coeff_y = 0;
 
 
-    parametrs(const std::vector<std::string> &inputs, const std::string &type, const std::string &output)
+    parameters(const std::vector<std::string> &inputs, const std::string &type, const std::string &output)
             : inputs(inputs), type(type), output(output) {}
 };
 
@@ -46,7 +46,7 @@ struct bench_statistics {
     uint32_t number_of_lines = 0;
     uint32_t number_of_edges = 0;
 
-    std::vector<parametrs> element;
+    std::vector<parameters> element;
 };
 
 
@@ -55,26 +55,44 @@ void addEdge(bench_statistics &stats, const std::vector<std::string> &inputs, co
     stats.element.emplace_back(inputs, type, output);
 }
 
-void sortGraph(bench_statistics &stats, std::vector<std::vector<parametrs>> &matrix) {
-    std::vector<parametrs> temp;
-
+void addingInputs( bench_statistics &stats, std::vector<parameters> &temp, std::vector<std::vector<parameters>> &matrix){
     for (const auto &iter : stats.element) {
-        std::string type = iter.type;
+        const std::string &type = iter.type;
         if (type == "input") {
             temp.emplace_back(iter);
         }
     }
     matrix.emplace_back(temp);
     temp.clear();
+}
 
+void addingElements( bench_statistics &stats, std::vector<parameters> &temp){
     for (const auto &iter : stats.element) {
-        std::string type = iter.type;
+        const std::string &type = iter.type;
         if (type != "input" && type != "output") {
             temp.emplace_back(iter);
         }
     }
+}
 
-//  sorting elements and recording to matrix
+void addingOutputs ( bench_statistics &stats, std::vector<parameters> &temp, std::vector<std::vector<parameters>> &matrix){
+    for (const auto &iter : stats.element) {
+        if (iter.type == "output") {
+            temp.emplace_back(iter);
+        }
+    }
+    matrix.emplace_back(temp);
+    temp.clear();
+}
+
+void fill_sortGraph(bench_statistics &stats, std::vector<std::vector<parameters>> &matrix) {
+    std::vector<parameters> temp;
+
+    addingInputs(stats, temp, matrix);
+
+    addingElements(stats, temp);
+
+//  sorting elements and filling matrix
     int layer_num = 0;
         while (temp.size() != 0) {
             matrix.emplace_back();
@@ -93,16 +111,11 @@ void sortGraph(bench_statistics &stats, std::vector<std::vector<parametrs>> &mat
         }
     temp.clear();
 
-    for (const auto &iter : stats.element) {
-        if (iter.type == "output") {
-            temp.emplace_back(iter);
-        }
-    }
-    matrix.emplace_back(temp);
-    temp.clear();
+    addingOutputs(stats, temp, matrix);
+
 }
 
-int maxStr(std::vector<std::vector<parametrs>> &matrix) {
+int maxStr(std::vector<std::vector<parameters>> &matrix) {
     size_t max = 0;
     for (const auto &iter : matrix) {
         if (max < iter.size()) max = iter.size();
@@ -110,8 +123,8 @@ int maxStr(std::vector<std::vector<parametrs>> &matrix) {
     return max;
 }
 
-void calculate_fp_coordinates( std::vector<parametrs>::iterator &it_str,
-                               std::vector<parametrs>::iterator &el_pred_str, std::vector<std::vector<parametrs>> &matrix) {
+void calculate_fp_coordinates( std::vector<parameters>::iterator &it_str,
+                               std::vector<parameters>::iterator &el_pred_str, std::vector<std::vector<parameters>> &matrix) {
     int fcoef_scale = 4;
     int scoef_scale = 3;
     it_str->fp_x = el_pred_str->sp_x + fcoef_scale * SCREEN_WIDTH / (2*scoef_scale*matrix.size());
@@ -119,15 +132,15 @@ void calculate_fp_coordinates( std::vector<parametrs>::iterator &it_str,
 
 }
 
-void calculate_sp_coordinates( std::vector<parametrs>::iterator &it_str,
-                               std::vector<std::vector<parametrs>>::iterator &it_matrix, std::vector<std::vector<parametrs>> &matrix) {
+void calculate_sp_coordinates( std::vector<parameters>::iterator &it_str,
+                               std::vector<std::vector<parameters>>::iterator &it_matrix, std::vector<std::vector<parameters>> &matrix) {
     int indent = 10;
     it_str->sp_x = indent + (SCREEN_WIDTH/matrix.size()) * (it_matrix - matrix.begin());
     it_str->sp_y = indent + (SCREEN_HEIGHT / maxStr(matrix)) * (it_str - it_matrix->begin());
 
 }
 
-void setCoordinates(std::vector<std::vector<parametrs>> &matrix) {
+void setCoordinates(std::vector<std::vector<parameters>> &matrix) {
     for (auto it_matrix = matrix.begin(); it_matrix != matrix.end(); ++it_matrix) {
         for (auto it_str = it_matrix->begin(); it_str != it_matrix->end(); ++it_str) {
             it_str->coeff_x = it_matrix - matrix.begin();
@@ -151,7 +164,7 @@ void setCoordinates(std::vector<std::vector<parametrs>> &matrix) {
     }
 }
 
-void matrix_to_vector(std::vector<parametrs> &vector, std::vector<std::vector<parametrs>> &matrix) {
+void matrix_to_vector(std::vector<parameters> &vector, std::vector<std::vector<parameters>> &matrix) {
     for (const auto &i : matrix){
         for (const auto &j : i){
             vector.emplace_back(j);
@@ -159,7 +172,7 @@ void matrix_to_vector(std::vector<parametrs> &vector, std::vector<std::vector<pa
     }
 }
 
-void debug(bench_statistics &stats, std::vector<parametrs> &vector_of_elements ){
+void debug(bench_statistics &stats, std::vector<parameters> &vector_of_elements ){
     std::cout << "All elements of the file" << std::endl;
     for (const auto &element : stats.element){
         for (const auto &inputs : element.inputs){
@@ -277,8 +290,8 @@ main(int argc, char *argv[]) {
     bench_statistics stats;
     bench_statistics_reader reader(stats);
 
-    std::vector<std::vector<parametrs>> matrix;
-    std::vector<parametrs> vector_of_elements;
+    std::vector<std::vector<parameters>> matrix;
+    std::vector<parameters> vector_of_elements;
 
     for (int i = 1; i < argc; ++i) {
         std::ifstream ifs(argv[i]);

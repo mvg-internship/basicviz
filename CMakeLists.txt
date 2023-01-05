@@ -13,7 +13,7 @@ target_include_directories(Lorina
     INTERFACE
         extern/lorina/include
         extern/lorina/lib/fmt
-)
+    )
 
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 add_subdirectory(test)
