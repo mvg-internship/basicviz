@@ -9,7 +9,7 @@
 #include <SDL_ttf.h>
 
 
-// Define screen dimensions
+//Define screen dimensions
 #define SCREEN_WIDTH    800
 #define SCREEN_HEIGHT   600
 
@@ -55,7 +55,7 @@ void addEdge(bench_statistics &stats, const std::vector<std::string> &inputs, co
     stats.element.emplace_back(inputs, type, output);
 }
 
-void addingInputs( bench_statistics &stats, std::vector<parameters> &temp, std::vector<std::vector<parameters>> &matrix){
+void addingInputs( const bench_statistics &stats, std::vector<parameters> &temp, std::vector<std::vector<parameters>> &matrix){
     for (const auto &iter : stats.element) {
         const std::string &type = iter.type;
         if (type == "input") {
@@ -66,7 +66,7 @@ void addingInputs( bench_statistics &stats, std::vector<parameters> &temp, std::
     temp.clear();
 }
 
-void addingElements( bench_statistics &stats, std::vector<parameters> &temp){
+void addingElements( const bench_statistics &stats, std::vector<parameters> &temp){
     for (const auto &iter : stats.element) {
         const std::string &type = iter.type;
         if (type != "input" && type != "output") {
@@ -75,7 +75,7 @@ void addingElements( bench_statistics &stats, std::vector<parameters> &temp){
     }
 }
 
-void addingOutputs ( bench_statistics &stats, std::vector<parameters> &temp, std::vector<std::vector<parameters>> &matrix){
+void addingOutputs ( const bench_statistics &stats, std::vector<parameters> &temp, std::vector<std::vector<parameters>> &matrix){
     for (const auto &iter : stats.element) {
         if (iter.type == "output") {
             temp.emplace_back(iter);
@@ -91,10 +91,9 @@ void fill_sortGraph(bench_statistics &stats, std::vector<std::vector<parameters>
     addingInputs(stats, temp, matrix);
 
     addingElements(stats, temp);
-
-//  sorting elements and filling matrix
+    //sorting elements and filling matrix
     int layer_num = 0;
-        while (temp.size() != 0) {
+        while (!temp.empty()) {
             matrix.emplace_back();
             for (const auto &matrix_it : matrix[layer_num]) {
                 for (int j = 0; j < temp.size(); ++j) {
@@ -115,7 +114,7 @@ void fill_sortGraph(bench_statistics &stats, std::vector<std::vector<parameters>
 
 }
 
-int maxStr(std::vector<std::vector<parameters>> &matrix) {
+size_t maxStr(const std::vector<std::vector<parameters>> &matrix) {
     size_t max = 0;
     for (const auto &iter : matrix) {
         if (max < iter.size()) max = iter.size();
@@ -123,18 +122,18 @@ int maxStr(std::vector<std::vector<parameters>> &matrix) {
     return max;
 }
 
-void calculate_fp_coordinates( std::vector<parameters>::iterator &it_str,
-                               std::vector<parameters>::iterator &el_pred_str, std::vector<std::vector<parameters>> &matrix) {
-    int fcoef_scale = 4;
-    int scoef_scale = 3;
+void calculate_fp_coordinates( const std::vector<parameters>::iterator &it_str,
+                               const std::vector<parameters>::iterator &el_pred_str, std::vector<std::vector<parameters>> &matrix) {
+    const int fcoef_scale = 4;
+    const int scoef_scale = 3;
     it_str->fp_x = el_pred_str->sp_x + fcoef_scale * SCREEN_WIDTH / (2*scoef_scale*matrix.size());
     it_str->fp_y = el_pred_str->sp_y + SCREEN_WIDTH / (4*matrix.size());
 
 }
 
-void calculate_sp_coordinates( std::vector<parameters>::iterator &it_str,
-                               std::vector<std::vector<parameters>>::iterator &it_matrix, std::vector<std::vector<parameters>> &matrix) {
-    int indent = 10;
+void calculate_sp_coordinates( const std::vector<parameters>::iterator &it_str,
+                              const std::vector<std::vector<parameters>>::iterator &it_matrix, std::vector<std::vector<parameters>> &matrix) {
+    const int indent = 10;
     it_str->sp_x = indent + (SCREEN_WIDTH/matrix.size()) * (it_matrix - matrix.begin());
     it_str->sp_y = indent + (SCREEN_HEIGHT / maxStr(matrix)) * (it_str - it_matrix->begin());
 
@@ -164,7 +163,7 @@ void setCoordinates(std::vector<std::vector<parameters>> &matrix) {
     }
 }
 
-void matrix_to_vector(std::vector<parameters> &vector, std::vector<std::vector<parameters>> &matrix) {
+void matrix_to_vector(std::vector<parameters> &vector, const std::vector<std::vector<parameters>> &matrix) {
     for (const auto &i : matrix){
         for (const auto &j : i){
             vector.emplace_back(j);
@@ -172,7 +171,7 @@ void matrix_to_vector(std::vector<parameters> &vector, std::vector<std::vector<p
     }
 }
 
-void debug(bench_statistics &stats, std::vector<parameters> &vector_of_elements ){
+void debug(FILE *f, const bench_statistics &stats, const std::vector<parameters> &vector_of_elements ){
     std::cout << "All elements of the file" << std::endl;
     for (const auto &element : stats.element){
         for (const auto &inputs : element.inputs){
@@ -303,11 +302,11 @@ main(int argc, char *argv[]) {
 
     }
 
-    sortGraph(stats, matrix);
+    fill_sortGraph(stats, matrix);
     setCoordinates(matrix);
     matrix_to_vector(vector_of_elements, matrix);
 
-    debug(stats, vector_of_elements);
+    debug(stdout, stats, vector_of_elements);
 
 
     SDL_Rect elements[vector_of_elements.size()];
@@ -329,7 +328,7 @@ main(int argc, char *argv[]) {
         } else {
 
             for (int i = 0; i < vector_of_elements.size(); ++i) {
-                int indent = 10;
+                const int indent = 10;
 
                 // Dimensions of the inputs
                 elements[i].w = 4 * SCREEN_WIDTH / (6*matrix.size());
