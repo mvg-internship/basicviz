@@ -1,5 +1,4 @@
 #include <lorina/bench.hpp>
-#include <lorina/lorina.hpp>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -55,7 +54,8 @@ void addEdge(bench_statistics &stats, const std::vector<std::string> &inputs, co
     stats.element.emplace_back(inputs, type, output);
 }
 
-void addingInputs( const bench_statistics &stats, std::vector<parameters> &temp, std::vector<std::vector<parameters>> &matrix){
+void addingInputs( const bench_statistics &stats, std::vector<parameters> &temp,
+                   std::vector<std::vector<parameters>> &matrix){
     for (const auto &iter : stats.element) {
         const std::string &type = iter.type;
         if (type == "input") {
@@ -75,7 +75,8 @@ void addingElements( const bench_statistics &stats, std::vector<parameters> &tem
     }
 }
 
-void addingOutputs ( const bench_statistics &stats, std::vector<parameters> &temp, std::vector<std::vector<parameters>> &matrix){
+void addingOutputs ( const bench_statistics &stats, std::vector<parameters> &temp,
+                     std::vector<std::vector<parameters>> &matrix){
     for (const auto &iter : stats.element) {
         if (iter.type == "output") {
             temp.emplace_back(iter);
@@ -123,7 +124,8 @@ size_t maxStr(const std::vector<std::vector<parameters>> &matrix) {
 }
 
 void calculate_fp_coordinates( const std::vector<parameters>::iterator &it_str,
-                               const std::vector<parameters>::iterator &el_pred_str, std::vector<std::vector<parameters>> &matrix) {
+                               const std::vector<parameters>::iterator &el_pred_str,
+                               std::vector<std::vector<parameters>> &matrix) {
     const int fcoef_scale = 4;
     const int scoef_scale = 3;
     it_str->fp_x = el_pred_str->sp_x + fcoef_scale * SCREEN_WIDTH / (2*scoef_scale*matrix.size());
@@ -132,7 +134,8 @@ void calculate_fp_coordinates( const std::vector<parameters>::iterator &it_str,
 }
 
 void calculate_sp_coordinates( const std::vector<parameters>::iterator &it_str,
-                              const std::vector<std::vector<parameters>>::iterator &it_matrix, std::vector<std::vector<parameters>> &matrix) {
+                               const std::vector<std::vector<parameters>>::iterator &it_matrix,
+                               std::vector<std::vector<parameters>> &matrix) {
     const int indent = 10;
     it_str->sp_x = indent + (SCREEN_WIDTH/matrix.size()) * (it_matrix - matrix.begin());
     it_str->sp_y = indent + (SCREEN_HEIGHT / maxStr(matrix)) * (it_str - it_matrix->begin());
@@ -255,9 +258,7 @@ public:
     mutable std::vector<std::tuple<std::vector<std::string>, std::string, std::string>> gate_lines;
 }; /* bench_statistics_reader */
 
-
-static void
-dump_statistics(FILE *f, const bench_statistics &st) {
+static void dump_statistics(FILE *f, const bench_statistics &st) {
     fprintf(f, "inputs: %u, outputs: %u, num ddfs: %u, num lines: %u\n",
             st.number_of_inputs,
             st.number_of_outputs,
@@ -265,9 +266,8 @@ dump_statistics(FILE *f, const bench_statistics &st) {
             st.number_of_lines);
 }
 
+SDL_Window *sdl_initialization(){
 
-int
-main(int argc, char *argv[]) {
 #if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
     // Disable compositor bypass
     if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"))
@@ -286,6 +286,106 @@ main(int argc, char *argv[]) {
     // Initialize SDL2_ttf
     TTF_Init();
 
+    // Create window
+    SDL_Window *window = SDL_CreateWindow("basicviz",
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    if (!window) {
+        printf("Window could not be created!\n"
+               "SDL_Error: %s\n", SDL_GetError());
+    }
+
+    return window;
+}
+
+void eventloop(const bench_statistics &stats, SDL_Renderer *renderer, const std::vector<parameters> &vector_of_elements,
+               const std::vector<std::vector<parameters>> &matrix){
+
+    SDL_Rect elements[vector_of_elements.size()];
+
+    for (int i = 0; i < vector_of_elements.size(); ++i) {
+        const int indent = 10;
+
+        // Dimensions of the inputs
+        elements[i].w = 4 * SCREEN_WIDTH / (6*matrix.size());
+        elements[i].h = SCREEN_WIDTH / (2*matrix.size());
+
+
+        // Location of the rects
+        elements[i].x = indent + (SCREEN_WIDTH/matrix.size()) * vector_of_elements[i].coeff_x;
+        elements[i].y = indent + (SCREEN_HEIGHT / maxStr(matrix)) * vector_of_elements[i].coeff_y;
+
+    }
+
+    // Event loop exit flag
+    bool quit = false;
+
+    // Event loop
+    while (!quit) {
+        SDL_Event e;
+
+        // Wait indefinitely for the next available event
+        SDL_WaitEvent(&e);
+
+        // User requests quit
+        if (e.type == SDL_QUIT) {
+            quit = true;
+        }
+
+        // Initialize renderer color white for the background
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+
+        // Clear screen
+        SDL_RenderClear(renderer);
+
+        // Set renderer color red to draw the square
+        SDL_SetRenderDrawColor(renderer, 0x00, 0xAA, 0xFF, 0xFF);
+
+        // Draw filled square
+        for (int i = 0; i < vector_of_elements.size(); ++i) {
+            SDL_RenderFillRect(renderer, &elements[i]);
+        }
+
+        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+
+        // Draw lines
+        for (size_t i = stats.number_of_inputs; i < stats.element.size(); ++i) {
+            SDL_RenderDrawLine(renderer, vector_of_elements[i].fp_x,
+                               vector_of_elements[i].fp_y,
+                               vector_of_elements[i].sp_x,
+                               vector_of_elements[i].sp_y);
+        }
+
+
+        // Update screen
+        SDL_RenderPresent(renderer);
+    }
+}
+
+void renderer (const bench_statistics &stats, SDL_Window *window, const std::vector<parameters> &vector_of_elements,
+               const std::vector<std::vector<parameters>> &matrix){
+
+    // Create renderer
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        printf("Renderer could not be created!\n"
+               "SDL_Error: %s\n", SDL_GetError());
+    } else {
+
+        eventloop(stats, renderer, vector_of_elements, matrix);
+
+        // Destroy renderer
+        SDL_DestroyRenderer(renderer);
+
+        // Destroy window
+        SDL_DestroyWindow(window);
+    }
+}
+
+int
+main(int argc, char *argv[]) {
+
     bench_statistics stats;
     bench_statistics_reader reader(stats);
 
@@ -302,103 +402,20 @@ main(int argc, char *argv[]) {
 
     }
 
+    //Working with data
     fill_sortGraph(stats, matrix);
     setCoordinates(matrix);
     matrix_to_vector(vector_of_elements, matrix);
 
+    //Output of info for debugging
     debug(stdout, stats, vector_of_elements);
 
-
-    SDL_Rect elements[vector_of_elements.size()];
-
-    // Create window
-    SDL_Window *window = SDL_CreateWindow("SDL2_ttf sample",
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    if (!window) {
-        printf("Window could not be created!\n"
-               "SDL_Error: %s\n", SDL_GetError());
-    } else {
-        // Create renderer
-        SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-        if (!renderer) {
-            printf("Renderer could not be created!\n"
-                   "SDL_Error: %s\n", SDL_GetError());
-        } else {
-
-            for (int i = 0; i < vector_of_elements.size(); ++i) {
-                const int indent = 10;
-
-                // Dimensions of the inputs
-                elements[i].w = 4 * SCREEN_WIDTH / (6*matrix.size());
-                elements[i].h = SCREEN_WIDTH / (2*matrix.size());
+    //Visualization
+    SDL_Window *window = sdl_initialization();
+    renderer(stats, window, vector_of_elements, matrix);
+    TTF_Quit();
+    SDL_Quit();
 
 
-                // Location of the rects
-                elements[i].x = indent + (SCREEN_WIDTH/matrix.size()) * vector_of_elements[i].coeff_x;
-                elements[i].y = indent + (SCREEN_HEIGHT / maxStr(matrix)) * vector_of_elements[i].coeff_y;
-
-            }
-
-
-            // Event loop exit flag
-            bool quit = false;
-
-            // Event loop
-            while (!quit) {
-                SDL_Event e;
-
-                // Wait indefinitely for the next available event
-                SDL_WaitEvent(&e);
-
-                // User requests quit
-                if (e.type == SDL_QUIT) {
-                    quit = true;
-                }
-
-                // Initialize renderer color white for the background
-                SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-
-                // Clear screen
-                SDL_RenderClear(renderer);
-
-                // Set renderer color red to draw the square
-                SDL_SetRenderDrawColor(renderer, 0x00, 0xAA, 0xFF, 0xFF);
-
-                // Draw filled square
-                for (int i = 0; i < vector_of_elements.size(); ++i) {
-                    SDL_RenderFillRect(renderer, &elements[i]);
-                }
-
-                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-
-                // Draw lines
-                for (size_t i = stats.number_of_inputs; i < stats.element.size(); ++i) {
-                    SDL_RenderDrawLine(renderer, vector_of_elements[i].fp_x,
-                                                 vector_of_elements[i].fp_y,
-                                                 vector_of_elements[i].sp_x,
-                                                 vector_of_elements[i].sp_y);
-                }
-
-
-                // Update screen
-                SDL_RenderPresent(renderer);
-            }
-
-            // Destroy renderer
-            SDL_DestroyRenderer(renderer);
-
-            // Destroy window
-            SDL_DestroyWindow(window);
-        }
-
-        // Quit SDL2_ttf
-        TTF_Quit();
-
-        // Quit SDL
-        SDL_Quit();
-
-    }
     return 0;
 }
