@@ -42,7 +42,7 @@
 #define SCREEN_WIDTH    800
 #define SCREEN_HEIGHT   600
 
-#define FONT_PATH   "assets/ttf/DejaVuSansMono.ttf"
+#define FONT_PATH   "../assets/ttf/DejaVuSansMono.ttf"
 
 int main(int argc, char* argv[])
 {
