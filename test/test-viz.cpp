@@ -12,10 +12,18 @@ enum {
     VSPACING = 2
 };
 
-enum ErrorCode {
-    FILENAME_NOT_PROVIDED = 1,
+enum StatusCode {
+    SUCCESS = 0,
+    FILENAME_NOT_PROVIDED,
     PARSER_FAILURE,
     SDL_INIT_FAILURE
+};
+
+const char* status_messages[4]{
+    "Success\n",
+    "Filename was not provided\n",
+    "Parser failure\n",
+    "SDL could not be initialized\n"
 };
 
 struct Vertex {
@@ -230,17 +238,17 @@ void drawBackground(SDL_Renderer* renderer) {
     SDL_RenderClear(renderer);
 }
 
-bool parseInput(const char* arg, LogicScheme& logic_scheme) {
+int parseInput(const char* arg, LogicScheme& logic_scheme) {
     std::string filename(arg);
 
     BenchParser parser(logic_scheme);
     auto result = lorina::read_bench(filename, parser);
-    if(result == lorina::return_code::parse_error) return false;
+    if(result == lorina::return_code::parse_error) return PARSER_FAILURE;
 
     logic_scheme.connectSchemeQueueOverlaps();
     logic_scheme.print(std::cout);
 
-    return true;
+    return SUCCESS;
 }
 
 std::vector<Line> prepareDrawData(LogicScheme& logic_scheme, const int screen_h, const int screen_w) {
@@ -286,22 +294,25 @@ int main(int argc, char* argv[]) {
 
     //Parsing bench file
     if(argc < 2) {
-        std::cerr << "Filename was not provided\n";
+        std::cerr << status_messages[FILENAME_NOT_PROVIDED];
         return FILENAME_NOT_PROVIDED;
     }
 
     LogicScheme logic_scheme;
 
-    if(!parseInput(argv[1], logic_scheme)) {
-        std::cerr << "Parser failure\n";
-        return PARSER_FAILURE;
+    int code = parseInput(argv[1], logic_scheme);
+    if(code) {
+        std::cerr << status_messages[code];
+        return code;
     }
 
     //SDL initialization
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
-        std::cerr << "SDL could not be initialized\n";
+        std::cerr << status_messages[SDL_INIT_FAILURE];
         return SDL_INIT_FAILURE;
     }
+
+    std::cout << status_messages[SUCCESS];
 
     SDL_DisplayMode display_info;
     SDL_GetCurrentDisplayMode(0, &display_info);
