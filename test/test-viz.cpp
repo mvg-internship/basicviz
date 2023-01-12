@@ -13,12 +13,12 @@ enum {
 };
 
 enum ErrorCode {
-    NO_FILENAME_PROVIDED = 1,
+    FILENAME_NOT_PROVIDED = 1,
     PARSER_FAILURE,
     SDL_INIT_FAILURE
 };
 
-struct vertex {
+struct Vertex {
     std::string type;
     std::string name;
     int layer;
@@ -26,26 +26,26 @@ struct vertex {
     SDL_FRect rectangle;
 };
 
-struct pending_connection {
-    vertex elementToBind;
+struct PendingConnection {
+    Vertex element_to_bind;
     std::string input;
 };
 
-class line {
+class Line {
 public:
-    static line right_to_left_line(const SDL_FRect &src, const SDL_FRect &dst) {
+    static Line rightToLeftLine(const SDL_FRect &src, const SDL_FRect &dst) {
         float x1, y1, x2, y2;
-        get_right(src, x1, y1);
-        get_left(dst, x2, y2);
+        getRight(src, x1, y1);
+        getLeft(dst, x2, y2);
         return { x1, y1, x2, y2 };
     }
 
-    static void get_right(const SDL_FRect &rect, float &x, float &y) {
+    static void getRight(const SDL_FRect &rect, float &x, float &y) {
         x = rect.x + rect.w;
         y = rect.y + rect.h / 2;
     }
 
-    static void get_left(const SDL_FRect &rect, float &x, float &y) {
+    static void getLeft(const SDL_FRect &rect, float &x, float &y) {
         x = rect.x;
         y = rect.y + rect.h / 2;
     }
@@ -56,15 +56,15 @@ public:
     float y2;
 };
 
-class logic_scheme {
+class LogicScheme {
 public:
 
-    logic_scheme() {
-        outputNum = 0;
+    LogicScheme() {
+        output_num = 0;
     }
 
-    void add_input(const std::string& name) {
-        vertex input;
+    void addInput(const std::string& name) {
+        Vertex input;
         input.type = "IN";
         input.name = name;
         input.layer = 0;
@@ -72,43 +72,43 @@ public:
         scheme.push_back(input);
     }
 
-    void add_output(const std::string& input) {
-        vertex output;
+    void addOutput(const std::string& input) {
+        Vertex output;
         output.type = "OUT";
-        output.name = std::string("output" + std::to_string(outputNum));
+        output.name = std::string("output" + std::to_string(output_num));
 
-        outputNum++;
+        output_num++;
 
-        push_back_queue(output, input);
+        pushBackQueue(output, input);
 
         scheme.push_back(output);
     }
 
-    void add_dff(const std::string& input, const std::string& output) {
-        vertex dff;
+    void addDff(const std::string& input, const std::string& output) {
+        Vertex dff;
 
         dff.type = "DFF";
         dff.name = output;
 
-        if(!connect(dff, input)) push_back_queue(dff, input);
+        if(!connect(dff, input)) pushBackQueue(dff, input);
 
         scheme.push_back(dff);
     }
 
-    void add_gate(const std::vector<std::string>& inputs, const std::string& output, const std::string& type) {
-        vertex gate;
+    void addGate(const std::vector<std::string>& inputs, const std::string& output, const std::string& type) {
+        Vertex gate;
         gate.type = type;
         gate.name = output;
 
         for(int i = 0; i < inputs.size(); i++) {
-            if(!connect(gate, inputs[i])) push_back_queue(gate, inputs[i]);
+            if(!connect(gate, inputs[i])) pushBackQueue(gate, inputs[i]);
         }
 
         scheme.push_back(gate);
     }
 
     //Method to check whether demanded input exists or not and connect it if possible
-    bool connect(vertex& element, const std::string& input) {
+    bool connect(Vertex& element, const std::string& input) {
         for(int j = 0; j < scheme.size(); j++) {
             if(scheme[j].name == input) {
                 element.ins.push_back(j);
@@ -120,11 +120,11 @@ public:
     }
 
     //Method to search where scheme overlaps queue and to search for connection in those elements
-    void find_and_connect_overlaps() {
+    void connectSchemeQueueOverlaps() {
         while(!queue.empty()) {
             for(int i = 0; i < scheme.size(); i++) {
                 for(auto j = queue.begin(); j != queue.end(); j++) {
-                    if(scheme[i].name == j->elementToBind.name) {
+                    if(scheme[i].name == j->element_to_bind.name) {
                         if(connect(scheme[i], j->input)) {
                             j = queue.erase(j);
                             j--;
@@ -135,15 +135,15 @@ public:
         }
     }
 
-    void push_back_queue(const vertex& elementToBind, const std::string& input) {
-        pending_connection queued_element;
-        queued_element.elementToBind = elementToBind;
+    void pushBackQueue(const Vertex& element_to_bind, const std::string& input) {
+        PendingConnection queued_element;
+        queued_element.element_to_bind = element_to_bind;
         queued_element.input = input;
         queue.push_back(queued_element);
     }
 
     void print(std::ostream& out) {
-        for(vertex& vert : scheme) {
+        for(Vertex& vert : scheme) {
             out << vert.type << ' ' << vert.name << ' ' << vert.layer << " INS: ";
             for(auto ins : vert.ins) {
                 out << scheme[ins].name << ' ';
@@ -152,43 +152,43 @@ public:
         }
         out << "\n====QUEUE===\n";
         for(auto &queued_element : queue) {
-            out << queued_element.elementToBind.type << ' ' << queued_element.elementToBind.name << "IN: " << queued_element.input << std::endl;
+            out << queued_element.element_to_bind.type << ' ' << queued_element.element_to_bind.name << "IN: " << queued_element.input << std::endl;
         }
     }
 
-    std::vector<vertex> scheme;
-    std::list<pending_connection> queue;
-    int outputNum;
+    std::vector<Vertex> scheme;
+    std::list<PendingConnection> queue;
+    int output_num;
 };
 
-class bench_parser : public lorina::bench_reader {
+class BenchParser : public lorina::bench_reader {
 public:
-    explicit bench_parser(logic_scheme& logicScheme) : scheme(logicScheme) {}
+    explicit BenchParser(LogicScheme& logic_scheme) : scheme(logic_scheme) {}
 
     virtual void on_input(const std::string& name) const override {
-        scheme.add_input(name);
+        scheme.addInput(name);
     }
 
     virtual void on_output(const std::string& name) const override {
-        scheme.add_output(name);
+        scheme.addOutput(name);
     }
 
     virtual void on_dff(const std::string &input, const std::string &output) const override {
-        scheme.add_dff(input, output);
+        scheme.addDff(input, output);
     }
 
     virtual void on_gate(const std::vector<std::string>& inputs, const std::string& output, const std::string& type) const override {
-        scheme.add_gate(inputs, output, type);
+        scheme.addGate(inputs, output, type);
     }
 
-    logic_scheme& scheme;
+    LogicScheme& scheme;
 };
 
-void setRectangle(std::vector<vertex*>& elements, const unsigned int max_elements, const float height, const float width, const int screen_height) {
+void setRectangle(std::vector<Vertex*>& elements, const unsigned int max_elements, const float height, const float width, const int screen_height) {
     int count = 0;
-    unsigned int freeSpaces = elements.size() + 1;
-    float step = (screen_height - height * elements.size()) / freeSpaces;
-    for(vertex* elem : elements) {
+    unsigned int free_spaces = elements.size() + 1;
+    float step = (screen_height - height * elements.size()) / free_spaces;
+    for(Vertex* elem : elements) {
         elem->rectangle.x = elem->layer * HSPACING * width;
         elem->rectangle.h = height;
         elem->rectangle.w = width;
@@ -204,24 +204,24 @@ void setRectangle(std::vector<vertex*>& elements, const unsigned int max_element
     }
 }
 
-void setConnections(const vertex& element, const std::vector<vertex>& scheme, std::vector<line>& connections) {
+void setConnections(const Vertex& element, const std::vector<Vertex>& scheme, std::vector<Line>& connections) {
     for(int input : element.ins) {
-        line connect(line::right_to_left_line(scheme[input].rectangle, element.rectangle));
+        Line connect(Line::rightToLeftLine(scheme[input].rectangle, element.rectangle));
         connections.push_back(connect);
     }
 }
 
-void drawElementsAndConnections(SDL_Renderer* renderer, const logic_scheme& elements, const std::vector<line>& connections) {
+void drawElementsAndConnections(SDL_Renderer* renderer, const LogicScheme& elements, const std::vector<Line>& connections) {
     SDL_SetRenderDrawColor(renderer, 255,255,255, SDL_ALPHA_OPAQUE);
 
     //Placing elements on the screen
-    for(const vertex& element : elements.scheme) {
+    for(const Vertex& element : elements.scheme) {
         SDL_RenderDrawRectF(renderer, &element.rectangle);
     }
 
-    //Placing connection lines on the screen
-    for(const line& connection_line : connections) {
-        SDL_RenderDrawLineF(renderer, connection_line.x1, connection_line.y1, connection_line.x2, connection_line.y2);
+    //Placing connection Lines on the screen
+    for(const Line& connection_Line : connections) {
+        SDL_RenderDrawLineF(renderer, connection_Line.x1, connection_Line.y1, connection_Line.x2, connection_Line.y2);
     }
 }
 
@@ -230,56 +230,56 @@ void drawBackground(SDL_Renderer* renderer) {
     SDL_RenderClear(renderer);
 }
 
-bool parseInput(const char* arg, logic_scheme& logicScheme) {
+bool parseInput(const char* arg, LogicScheme& logic_scheme) {
     std::string filename(arg);
 
-    bench_parser parser(logicScheme);
+    BenchParser parser(logic_scheme);
     auto result = lorina::read_bench(filename, parser);
     if(result == lorina::return_code::parse_error) return false;
 
-    logicScheme.find_and_connect_overlaps();
-    logicScheme.print(std::cout);
+    logic_scheme.connectSchemeQueueOverlaps();
+    logic_scheme.print(std::cout);
 
     return true;
 }
 
-std::vector<line> prepareDrawData(logic_scheme& logicScheme, const int screen_h, const int screen_w) {
+std::vector<Line> prepareDrawData(LogicScheme& logic_scheme, const int screen_h, const int screen_w) {
     //Finding number of layers by finding the max layer number
-    int layersNum = 0;
-    for(const vertex& element : logicScheme.scheme) {
-        if(element.layer > layersNum) layersNum = element.layer;
+    int layers_num = 0;
+    for(const Vertex& element : logic_scheme.scheme) {
+        if(element.layer > layers_num) layers_num = element.layer;
     }
-    layersNum++;
+    layers_num++;
 
     //Creating vector with pre-allocated space and filling it layerNum-wise
-    std::vector<std::vector<vertex*>> elementsByLayers(layersNum);
-    for(auto & i : logicScheme.scheme) {
+    std::vector<std::vector<Vertex*>> elementsByLayers(layers_num);
+    for(auto & i : logic_scheme.scheme) {
         elementsByLayers[i.layer].push_back(&i);
     }
 
     //Finding the number of elements in layer with the most elements
-    unsigned int maxElems = 0;
-    for(std::vector<vertex*>& elements : elementsByLayers) {
-        if(elements.size() > maxElems) {
-            maxElems = elements.size();
+    unsigned int max_elements = 0;
+    for(std::vector<Vertex*>& elements : elementsByLayers) {
+        if(elements.size() > max_elements) {
+            max_elements = elements.size();
         }
     }
 
-    const float rectHeight = screen_h/(VSPACING*maxElems);
-    const float rectWidth = screen_w/(HSPACING*layersNum);
+    const float rect_height = screen_h/(VSPACING*max_elements);
+    const float rect_width = screen_w/(HSPACING*layers_num);
 
-    for(std::vector<vertex*>& elements : elementsByLayers) {
-        setRectangle(elements, maxElems, rectHeight, rectWidth, screen_h);
+    for(std::vector<Vertex*>& elements : elementsByLayers) {
+        setRectangle(elements, max_elements, rect_height, rect_width, screen_h);
     }
 
-    std::vector<line> connectionLines;
-    for(std::vector<vertex*>& elements : elementsByLayers) {
-        for(vertex* element : elements) {
-            setConnections(*element, logicScheme.scheme, connectionLines);
+    std::vector<Line> connection_lines;
+    for(std::vector<Vertex*>& elements : elementsByLayers) {
+        for(Vertex* element : elements) {
+            setConnections(*element, logic_scheme.scheme, connection_lines);
         }
     }
 
-    return connectionLines;
+    return connection_lines;
 }
 
 int main(int argc, char* argv[]) {
@@ -287,12 +287,12 @@ int main(int argc, char* argv[]) {
     //Parsing bench file
     if(argc < 2) {
         std::cerr << "Filename was not provided\n";
-        return NO_FILENAME_PROVIDED;
+        return FILENAME_NOT_PROVIDED;
     }
 
-    logic_scheme logicScheme;
+    LogicScheme logic_scheme;
 
-    if(!parseInput(argv[1], logicScheme)) {
+    if(!parseInput(argv[1], logic_scheme)) {
         std::cerr << "Parser failure\n";
         return PARSER_FAILURE;
     }
@@ -303,24 +303,24 @@ int main(int argc, char* argv[]) {
         return SDL_INIT_FAILURE;
     }
 
-    SDL_DisplayMode displayInfo;
-    SDL_GetCurrentDisplayMode(0, &displayInfo);
+    SDL_DisplayMode display_info;
+    SDL_GetCurrentDisplayMode(0, &display_info);
 
-    SDL_Window* window = SDL_CreateWindow("test-viz", 0, 0, displayInfo.w, displayInfo.h, SDL_WINDOW_SHOWN);
+    SDL_Window* window = SDL_CreateWindow("test-viz", 0, 0, display_info.w, display_info.h, SDL_WINDOW_SHOWN);
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     //Prepare draw data and draw
     drawBackground(renderer);
-    drawElementsAndConnections(renderer, logicScheme, prepareDrawData(logicScheme, displayInfo.h, displayInfo.w));
+    drawElementsAndConnections(renderer, logic_scheme, prepareDrawData(logic_scheme, display_info.h, display_info.w));
     SDL_RenderPresent(renderer);
 
     //Event loop
-    bool isRunning = true;
-    while(isRunning) {
+    bool is_running = true;
+    while(is_running) {
         SDL_Event event;
         while(SDL_PollEvent(&event)) {
-            if(event.type == SDL_QUIT) isRunning = false;
+            if(event.type == SDL_QUIT) is_running = false;
         }
     }
 
