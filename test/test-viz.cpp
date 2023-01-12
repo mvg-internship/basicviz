@@ -126,8 +126,8 @@ public:
                 for(auto j = queue.begin(); j != queue.end(); j++) {
                     if(scheme[i].name == j->element_to_bind.name) {
                         if(connect(scheme[i], j->input)) {
-                            j = queue.erase(j);
-                            j--;
+                            j = queue.end();
+                            queue.pop_back();
                         }
                     }
                 }
