@@ -95,7 +95,7 @@ public:
         scheme.push_back(dff);
     }
 
-    void add_gate(std::vector<std::string> inputs, const std::string& output, const std::string& type) {
+    void add_gate(const std::vector<std::string>& inputs, const std::string& output, const std::string& type) {
         vertex gate;
         gate.type = type;
         gate.name = output;
@@ -124,7 +124,6 @@ public:
         while(!queue.empty()) {
             for(int i = 0; i < scheme.size(); i++) {
                 for(auto j = queue.begin(); j != queue.end(); j++) {
-                    std::cout << "qeueu ";
                     if(scheme[i].name == j->elementToBind.name) {
                         if(connect(scheme[i], j->input)) {
                             j = queue.erase(j);
@@ -231,7 +230,7 @@ void drawBackground(SDL_Renderer* renderer) {
     SDL_RenderClear(renderer);
 }
 
-bool parseInput(char* arg, logic_scheme& logicScheme) {
+bool parseInput(const char* arg, logic_scheme& logicScheme) {
     std::string filename(arg);
 
     bench_parser parser(logicScheme);
@@ -300,18 +299,16 @@ int main(int argc, char* argv[]) {
 
     //SDL initialization
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
-        std::cerr << "SDL could not be initialized";
+        std::cerr << "SDL could not be initialized\n";
         return SDL_INIT_FAILURE;
     }
 
     SDL_DisplayMode displayInfo;
     SDL_GetCurrentDisplayMode(0, &displayInfo);
 
-    SDL_Window* window = nullptr;
-    window = SDL_CreateWindow("test-viz", 0, 0, displayInfo.w, displayInfo.h, SDL_WINDOW_SHOWN);
+    SDL_Window* window = SDL_CreateWindow("test-viz", 0, 0, displayInfo.w, displayInfo.h, SDL_WINDOW_SHOWN);
 
-    SDL_Renderer* renderer = nullptr;
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     //Prepare draw data and draw
     drawBackground(renderer);
