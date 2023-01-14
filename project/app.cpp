@@ -16,7 +16,6 @@ enum {
   GAPS = 80
 };
 
-using namespace lorina;
 struct params{
     std::string type;
 
@@ -53,7 +52,7 @@ void map_function(bench_statistics &stats) {
       stats.g.insert(std::make_pair(stats.el.at(i).name,i));
 }
 
-class bench_statistics_reader : public bench_reader {
+class bench_statistics_reader : public lorina::bench_reader {
 public:
   explicit bench_statistics_reader(bench_statistics &stats) : _stats(stats) {}
 
@@ -292,7 +291,7 @@ int main(int argc, char *argv[]) {
     bench_statistics_reader reader(stats);
     auto result = read_bench(ifs, reader);
 
-    if (result == return_code::success) {
+    if (result == lorina::return_code::success) {
       dump_statistics(stdout, stats);
     }
     const auto &gate_lines = reader.gate_lines;
