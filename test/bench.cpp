@@ -1,5 +1,4 @@
 #include <lorina/bench.hpp>
-#include <fstream>
 #include <string>
 #include <vector>
 #include <stdio.h>
@@ -88,7 +87,6 @@ void addingOutputs ( const bench_statistics &stats, std::vector<parameters> &tem
 }
 
 void sortElements(std::vector<parameters> &temp, std::vector<std::vector<parameters>> &matrix){
-
     int layer_num = 0;
     while (!temp.empty()) {
         matrix.emplace_back();
@@ -106,20 +104,15 @@ void sortElements(std::vector<parameters> &temp, std::vector<std::vector<paramet
         layer_num++;
     }
     temp.clear();
-
 }
 
 void fillGraph(bench_statistics &stats, std::vector<std::vector<parameters>> &matrix) {
     std::vector<parameters> temp;
 
     addingInputs(stats, temp, matrix);
-
     addingElements(stats, temp);
-
     sortElements(temp, matrix);
-
     addingOutputs(stats, temp, matrix);
-
 }
 
 size_t maxStr(const std::vector<std::vector<parameters>> &matrix) {
@@ -179,27 +172,28 @@ void matrix_to_vector(std::vector<parameters> &vector, const std::vector<std::ve
 }
 
 void debug(FILE *f, const bench_statistics &stats, const std::vector<parameters> &vector_of_elements ){
-    std::cout << "All elements of the file" << std::endl;
+    fprintf(f, "All elements of the file:\n");
     for (const auto &element : stats.element){
         for (const auto &inputs : element.inputs){
-            std::cout << inputs << " ";
+            fprintf(f, "%s ", inputs.c_str());
         }
-        std::cout << " || " << element.type << " || ";
-        std::cout << element.output << std::endl;
+        fprintf(f, " || %s || %s\n",
+                element.type.c_str(), element.output.c_str());
     }
 
-    std::cout << "----------------------------------------" << std::endl;
+    fprintf(f, "----------------------------------------\n");
 
-    std::cout  << "vector of elements" << std::endl;
+    fprintf(f, "Vector of elements\n");
     for (const auto &element : vector_of_elements){
         for (const auto &inputs : element.inputs){
-            std::cout << inputs << " ";
+            fprintf(f, "%s ", inputs.c_str());
         }
-        std::cout << element.type << " " << element.output << "  in(" << element.fp_x << " " << element.fp_y <<")  out("
-                  << element.sp_x << " " << element.sp_y << ")" << "  |"  << element.coeff_x << " " << element.coeff_y << "|"
-                  << std::endl;
+        fprintf(f, "%s %s in(%.1f %.1f) out(%.1f %.1f) |%d %d|\n",
+                element.type.c_str(), element.output.c_str(),
+                element.fp_x, element.fp_y,
+                element.sp_x, element.sp_y,
+                element.coeff_x, element.coeff_y);
     }
-
 }
 
 class bench_statistics_reader : public bench_reader {
@@ -252,12 +246,12 @@ public:
     mutable std::vector<std::tuple<std::vector<std::string>, std::string, std::string>> gate_lines;
 }; /* bench_statistics_reader */
 
-static void dump_statistics(FILE *f, const bench_statistics &st) {
+static void dump_statistics(FILE *f, const bench_statistics &stats) {
     fprintf(f, "inputs: %u, outputs: %u, num ddfs: %u, num lines: %u\n",
-            st.number_of_inputs,
-            st.number_of_outputs,
-            st.number_of_dffs,
-            st.number_of_lines);
+            stats.number_of_inputs,
+            stats.number_of_outputs,
+            stats.number_of_dffs,
+            stats.number_of_lines);
 }
 
 SDL_Window *sdl_initialization(){
@@ -393,6 +387,7 @@ main(int argc, char *argv[]) {
         }
 
     }
+
 
     //Working with data
     fillGraph(stats, matrix);
