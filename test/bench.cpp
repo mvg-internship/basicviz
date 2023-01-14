@@ -8,12 +8,13 @@
 #include <SDL_ttf.h>
 
 
-//Define screen dimensions
-#define SCREEN_WIDTH    800
-#define SCREEN_HEIGHT   600
-
-
-#define FONT_PATH   "../assets/ttf/DejaVuSansMono.ttf"
+enum {
+    SCREEN_WIDTH = 800,
+    SCREEN_HEIGHT = 600,
+    indent = 10,
+    fcoef_scale = 4,
+    scoef_scale = 3
+};
 
 using namespace lorina;
 
@@ -86,30 +87,36 @@ void addingOutputs ( const bench_statistics &stats, std::vector<parameters> &tem
     temp.clear();
 }
 
-void fill_sortGraph(bench_statistics &stats, std::vector<std::vector<parameters>> &matrix) {
+void sortElements(std::vector<parameters> &temp, std::vector<std::vector<parameters>> &matrix){
+
+    int layer_num = 0;
+    while (!temp.empty()) {
+        matrix.emplace_back();
+        for (const auto &matrix_it : matrix[layer_num]) {
+            for (int j = 0; j < temp.size(); ++j) {
+                const auto &temp_inputs = temp[j].inputs;
+                auto temp_it = std::find(temp_inputs.begin(), temp_inputs.end(), matrix_it.output);
+                if (temp_it != temp_inputs.end()) {
+                    matrix.back().emplace_back(temp[j]);
+                    temp.erase(temp.begin() + j);
+                    j--;
+                }
+            }
+        }
+        layer_num++;
+    }
+    temp.clear();
+
+}
+
+void fillGraph(bench_statistics &stats, std::vector<std::vector<parameters>> &matrix) {
     std::vector<parameters> temp;
 
     addingInputs(stats, temp, matrix);
 
     addingElements(stats, temp);
-    //sorting elements and filling matrix
-    int layer_num = 0;
-        while (!temp.empty()) {
-            matrix.emplace_back();
-            for (const auto &matrix_it : matrix[layer_num]) {
-                for (int j = 0; j < temp.size(); ++j) {
-                    const auto &temp_inputs = temp[j].inputs;
-                    auto temp_it = std::find(temp_inputs.begin(), temp_inputs.end(), matrix_it.output);
-                    if (temp_it != temp_inputs.end()) {
-                        matrix.back().emplace_back(temp[j]);
-                        temp.erase(temp.begin() + j);
-                        j--;
-                    }
-                }
-            }
-            layer_num++;
-        }
-    temp.clear();
+
+    sortElements(temp, matrix);
 
     addingOutputs(stats, temp, matrix);
 
@@ -126,17 +133,14 @@ size_t maxStr(const std::vector<std::vector<parameters>> &matrix) {
 void calculate_fp_coordinates( const std::vector<parameters>::iterator &it_str,
                                const std::vector<parameters>::iterator &el_pred_str,
                                std::vector<std::vector<parameters>> &matrix) {
-    const int fcoef_scale = 4;
-    const int scoef_scale = 3;
     it_str->fp_x = el_pred_str->sp_x + fcoef_scale * SCREEN_WIDTH / (2*scoef_scale*matrix.size());
-    it_str->fp_y = el_pred_str->sp_y + SCREEN_WIDTH / (4*matrix.size());
+    it_str->fp_y = el_pred_str->sp_y + SCREEN_WIDTH / (fcoef_scale*matrix.size());
 
 }
 
 void calculate_sp_coordinates( const std::vector<parameters>::iterator &it_str,
                                const std::vector<std::vector<parameters>>::iterator &it_matrix,
                                std::vector<std::vector<parameters>> &matrix) {
-    const int indent = 10;
     it_str->sp_x = indent + (SCREEN_WIDTH/matrix.size()) * (it_matrix - matrix.begin());
     it_str->sp_y = indent + (SCREEN_HEIGHT / maxStr(matrix)) * (it_str - it_matrix->begin());
 
@@ -206,7 +210,6 @@ public:
     }
 
     virtual void on_input(const std::string &name) const override {
-        (void) name;
         std::vector<std::string> input;
         addEdge(_stats, input, "input", name);
         ++_stats.number_of_inputs;
@@ -214,7 +217,6 @@ public:
     }
 
     virtual void on_output(const std::string &name) const override {
-        (void) name;
         std::vector<std::string> input;
         input.emplace_back(name);
         addEdge(_stats, input, "output");
@@ -222,13 +224,7 @@ public:
         ++_stats.number_of_edges;
     }
 
-    virtual void on_dff_input(const std::string &input) const override {
-        (void) input;
-    }
-
     virtual void on_dff(const std::string &input, const std::string &output) const override {
-        (void) input;
-        (void) output;
         std::vector<std::string> inp;
         inp.emplace_back(input);
         addEdge(_stats, inp, "dff", output);
@@ -245,8 +241,6 @@ public:
     }
 
     virtual void on_assign(const std::string &input, const std::string &output) const override {
-        (void) input;
-        (void) output;
         std::vector<std::string> inp;
         inp.emplace_back(input);
         addEdge(_stats, inp, "dff", output);
@@ -305,10 +299,8 @@ void eventloop(const bench_statistics &stats, SDL_Renderer *renderer, const std:
     SDL_Rect elements[vector_of_elements.size()];
 
     for (int i = 0; i < vector_of_elements.size(); ++i) {
-        const int indent = 10;
-
         // Dimensions of the inputs
-        elements[i].w = 4 * SCREEN_WIDTH / (6*matrix.size());
+        elements[i].w = fcoef_scale * SCREEN_WIDTH / (2*scoef_scale*matrix.size());
         elements[i].h = SCREEN_WIDTH / (2*matrix.size());
 
 
@@ -403,7 +395,7 @@ main(int argc, char *argv[]) {
     }
 
     //Working with data
-    fill_sortGraph(stats, matrix);
+    fillGraph(stats, matrix);
     setCoordinates(matrix);
     matrix_to_vector(vector_of_elements, matrix);
 
