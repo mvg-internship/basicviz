@@ -16,7 +16,7 @@ enum {
   GAPS = 80
 };
 
-struct params{
+struct parameters{
     std::string type;
 
     //  change name!!!
@@ -37,10 +37,10 @@ struct bench_statistics {
 
   std::vector<std::string> inputs;
 
-  std::vector<params> el;
+  std::vector<parameters> el;
 
-    //  change name!!!
-    std::map<std::string, int> g;
+  //  change name!!!
+  std::map<std::string, int> g;
 
   /* lines without input and outputs */
   uint32_t number_of_lines = 0;
@@ -57,7 +57,7 @@ public:
   explicit bench_statistics_reader(bench_statistics &stats) : _stats(stats) {}
 
   virtual void on_input(const std::string &name) const override {
-    params local;
+    parameters local;
     const std::string type = "INPUT";
     local.type = type;
     local.name = name;
@@ -73,7 +73,7 @@ public:
   virtual void on_dff(const std::string &input,
                       const std::string &output) const override {
     std::string type = "DFF";
-    params local;
+    parameters local;
     local.type = type;
     local.gates.push_back(input);
     local.name = output;
@@ -85,7 +85,7 @@ public:
                        const std::string &output,
                        const std::string &type) const override {
     gate_lines.emplace_back(inputs, output, type);
-    params local;
+    parameters local;
     local.type = type;
     local.name = output;
     for (int i = 0; i < inputs.size(); ++i)
@@ -115,7 +115,7 @@ void setElCoord(bench_statistics &stats, int index_number) {
   // function that specifies coordinate for all elements
   int maxXCoord = 0;
 
-  params &data = stats.el[index_number];
+  parameters &data = stats.el[index_number];
   if (data.set_coord)
     return;
 
