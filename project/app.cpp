@@ -254,7 +254,7 @@ void renderer(bench_statistics &stats, SDL_Window *window) {
     }
 
     //          Declare rect of square
-    std::vector<SDL_Rect> elements = std::vector<SDL_Rect>(stats.el.size());
+    std::vector<SDL_Rect> elements(stats.el.size());
 
     for (int i = 0; i < stats.el.size(); ++i) {
         elements[i].w = INPUT_WIDTH;
