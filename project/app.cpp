@@ -44,7 +44,7 @@ struct bench_statistics {
   uint32_t number_of_lines = 0;
 };
 
-void map_function(bench_statistics &stats) {
+void setMapToGates(bench_statistics &stats) {
   for (int i = 0; i < stats.el.size(); ++i)
       stats.g.insert(std::make_pair(stats.el.at(i).name,i));
 }
@@ -247,7 +247,7 @@ void renderer(bench_statistics &stats, SDL_Window *window) {
     }
 
     //            set coordinates for other elements
-    map_function(stats);
+    setMapToGates(stats);
     for (int i = 0; i < stats.el.size(); ++i) {
         setElCoord(stats, i);
     }
