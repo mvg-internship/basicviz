@@ -45,7 +45,7 @@ struct bench_statistics {
 };
 
 void setMapToGates(bench_statistics &stats) {
-  for (int i = 0; i < stats.el.size(); ++i)
+  for (size_t i = 0; i < stats.el.size(); ++i)
       stats.g.insert(std::make_pair(stats.el.at(i).name,i));
 }
 
@@ -85,7 +85,7 @@ public:
     parameters local;
     local.type = type;
     local.name = output;
-    for (int i = 0; i < inputs.size(); ++i)
+    for (size_t i = 0; i < inputs.size(); ++i)
         local.gates.push_back(inputs[i]);
     _stats.el.push_back(local);
     _stats.number_of_lines++;
@@ -118,7 +118,7 @@ void setElCoord(bench_statistics &stats, int index_number) {
 
   data.setting_coord = true;
 
-  for (int i = 0; i < data.gates.size(); ++i) {
+  for (size_t i = 0; i < data.gates.size(); ++i) {
     if (data.set_coord)
       break;
 
@@ -140,7 +140,7 @@ void setElCoord(bench_statistics &stats, int index_number) {
   if (data.setting_coord)
     data.setting_coord =false;
   int y_coord = 0;
-  for (int j = 0; j < stats.el.size(); ++j) {
+  for (size_t j = 0; j < stats.el.size(); ++j) {
     if (stats.el.at(j).x == maxXCoord + GAPS)
       y_coord = fmax(y_coord, stats.el.at(j).y + GAPS);
   }
@@ -152,7 +152,7 @@ void setElCoord(bench_statistics &stats, int index_number) {
 void setInputsCoord(std::vector<parameters> &el, std::string name,
                     int index_number) {
   //    function that specifies coordinate for inputs
-  for (int i = 0; i < el.size(); ++i)
+  for (size_t i = 0; i < el.size(); ++i)
     if (el.at(i).name == name) {
       el.at(i).x = 0;
       el.at(i).y = (INPUT_HEIGHT+ GAPS)  * index_number;
@@ -215,9 +215,9 @@ void eventLoop(bench_statistics &stats, SDL_Renderer *renderer,
 
     // Draw filled square
     const std::vector<parameters> &el = stats.el;
-    for (int i = 0; i < el.size(); ++i) {
+    for (size_t i = 0; i < el.size(); ++i) {
         SDL_RenderFillRect(renderer,&elements[i]);
-        for (int j = 0; j < el.at(i).gates.size(); ++j) {
+        for (size_t j = 0; j < el.at(i).gates.size(); ++j) {
           SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
           int el2 = stats.g[el.at(i).gates.at(j)];
           SDL_RenderDrawLine(renderer, el.at(i).x, el.at(i).y,
@@ -233,20 +233,20 @@ void eventLoop(bench_statistics &stats, SDL_Renderer *renderer,
 
 void renderElements(bench_statistics &stats, SDL_Renderer *renderer){
     //            set inputs coordinates
-    for (int i = 0; i < stats.inputs.size(); ++i) {
+    for (size_t i = 0; i < stats.inputs.size(); ++i) {
         setInputsCoord(stats.el, stats.inputs.at(i), i);
     }
 
     //            set coordinates for other elements
     setMapToGates(stats);
-    for (int i = 0; i < stats.el.size(); ++i) {
+    for (size_t i = 0; i < stats.el.size(); ++i) {
         setElCoord(stats, i);
     }
 
     //          Declare rect of square
     std::vector<SDL_Rect> elements(stats.el.size());
 
-    for (int i = 0; i < stats.el.size(); ++i) {
+    for (size_t i = 0; i < stats.el.size(); ++i) {
         elements[i].w = INPUT_WIDTH;
         elements[i].h = INPUT_HEIGHT;
         elements[i].x = stats.el.at(i).x;
