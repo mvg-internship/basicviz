@@ -38,7 +38,6 @@ struct bench_statistics {
 
   std::vector<parameters> el;
 
-  //  change name!!!
   std::map<std::string, int> g;
 
   /* lines without input and outputs */
@@ -264,7 +263,6 @@ void renderer(bench_statistics &stats, SDL_Window *window) {
     }
     eventLoop(stats, renderer, elements);
 
-    // Destroy renderer
     SDL_DestroyRenderer(renderer);
   }
 }
@@ -283,17 +281,13 @@ int main(int argc, char *argv[]) {
     if (result == lorina::return_code::success) {
       dump_statistics(stdout, stats);
     }
-    const auto &gate_lines = reader.gate_lines;
 
     renderer(stats, window);
 
-    // Destroy window
     SDL_DestroyWindow(window);
 
-    // Quit SDL2_ttf
     TTF_Quit();
 
-    // Quit SDL
     SDL_Quit();
   }
   return 0;
