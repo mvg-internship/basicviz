@@ -38,7 +38,7 @@ struct bench_statistics {
 
   std::vector<parameters> el;
 
-  std::map<std::string, int> g;
+  std::map<std::string, int> gatesMap;
 
   /* lines without input and outputs */
   uint32_t number_of_lines = 0;
@@ -46,7 +46,7 @@ struct bench_statistics {
 
 void setMapToGates(bench_statistics &stats) {
   for (size_t i = 0; i < stats.el.size(); ++i)
-      stats.g.insert(std::make_pair(stats.el.at(i).name,i));
+      stats.gatesMap.insert(std::make_pair(stats.el.at(i).name,i));
 }
 
 class bench_statistics_reader : public lorina::bench_reader {
@@ -123,7 +123,7 @@ void setElCoord(bench_statistics &stats, int index_number) {
       break;
 
     std::string gate = data.gates.at(i);
-    int index = stats.g[gate];
+    int index = stats.gatesMap[gate];
 
     if (stats.el.at(index).set_coord) {
       maxXCoord = fmax(maxXCoord, stats.el.at(index).x);
@@ -219,7 +219,7 @@ void eventLoop(bench_statistics &stats, SDL_Renderer *renderer,
         SDL_RenderFillRect(renderer,&elements[i]);
         for (size_t j = 0; j < el.at(i).gates.size(); ++j) {
           SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
-          int el2 = stats.g[el.at(i).gates.at(j)];
+          int el2 = stats.gatesMap[el.at(i).gates.at(j)];
           SDL_RenderDrawLine(renderer, el.at(i).x, el.at(i).y,
                   el.at(el2).x + INPUT_WIDTH,
                   el.at(el2).y + INPUT_HEIGHT);
