@@ -101,7 +101,7 @@ public:
   mutable std::vector<
       std::tuple<std::vector<std::string>, std::string, std::string>>
       gate_lines;
-}; /* bench_statistics_reader */
+};
 
 static void dump_statistics(FILE *f, const bench_statistics &st) {
   fprintf(f, "inputs: %u, outputs: %u, num ddfs: %u, num lines: %u\n",
@@ -150,16 +150,14 @@ void setElCoord(bench_statistics &stats, int index_number) {
   data.set_coord =true;
 }
 
-void setInputsCoord(bench_statistics &stats, std::string name,
+void setInputsCoord(std::vector<parameters> &el, std::string name,
                     int index_number) {
   //    function that specifies coordinate for inputs
-  const int pos_x = 0;
-  const int pos_y =  (INPUT_HEIGHT+ GAPS)  * index_number;
-  for (int i = 0; i < stats.el.size(); ++i)
-    if (stats.el.at(i).name == name) {
-      stats.el.at(i).x = pos_x;
-      stats.el.at(i).y = pos_y;
-      stats.el.at(i).set_coord =true;
+  for (int i = 0; i < el.size(); ++i)
+    if (el.at(i).name == name) {
+      el.at(i).x = 0;
+      el.at(i).y = (INPUT_HEIGHT+ GAPS)  * index_number;
+      el.at(i).set_coord =true;
     }
 }
 
@@ -246,7 +244,7 @@ void renderer(bench_statistics &stats, SDL_Window *window) {
   } else {
     //            set inputs coordinates
     for (int i = 0; i < stats.inputs.size(); ++i) {
-      setInputsCoord(stats, stats.inputs.at(i), i);
+      setInputsCoord(stats.el, stats.inputs.at(i), i);
     }
 
     //            set coordinates for other elements
