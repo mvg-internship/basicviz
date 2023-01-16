@@ -214,16 +214,15 @@ void eventLoop(bench_statistics &stats, SDL_Renderer *renderer,
     SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
 
     // Draw filled square
-    for (int i = 0; i < stats.el.size(); ++i){
+    const std::vector<parameters> &el = stats.el;
+    for (int i = 0; i < el.size(); ++i) {
         SDL_RenderFillRect(renderer,&elements[i]);
-    }
-    for (int i = 0; i < stats.el.size(); ++i) {
-        for (int j = 0; j < stats.el.at(i).gates.size(); ++j) {
+        for (int j = 0; j < el.at(i).gates.size(); ++j) {
           SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
-          int el2 = stats.g[stats.el.at(i).gates.at(j)];
-          SDL_RenderDrawLine(renderer, stats.el.at(i).x, stats.el.at(i).y,
-                  stats.el.at(el2).x + INPUT_WIDTH,
-                  stats.el.at(el2).y + INPUT_HEIGHT);
+          int el2 = stats.g[el.at(i).gates.at(j)];
+          SDL_RenderDrawLine(renderer, el.at(i).x, el.at(i).y,
+                  el.at(el2).x + INPUT_WIDTH,
+                  el.at(el2).y + INPUT_HEIGHT);
         }
     }
 
@@ -232,18 +231,10 @@ void eventLoop(bench_statistics &stats, SDL_Renderer *renderer,
   }
 }
 
-void renderer(bench_statistics &stats, SDL_Window *window) {
-  // Create renderer
-  SDL_Renderer *renderer =
-      SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-  if (!renderer) {
-    printf("Renderer could not be created!\n"
-           "SDL_Error: %s\n",
-           SDL_GetError());
-  } else {
+void renderElements(bench_statistics &stats, SDL_Renderer *renderer){
     //            set inputs coordinates
     for (int i = 0; i < stats.inputs.size(); ++i) {
-      setInputsCoord(stats.el, stats.inputs.at(i), i);
+        setInputsCoord(stats.el, stats.inputs.at(i), i);
     }
 
     //            set coordinates for other elements
@@ -262,9 +253,20 @@ void renderer(bench_statistics &stats, SDL_Window *window) {
         elements[i].y = stats.el.at(i).y;
     }
     eventLoop(stats, renderer, elements);
+}
 
-    SDL_DestroyRenderer(renderer);
+void creteRenderer(bench_statistics &stats, SDL_Window *window) {
+  SDL_Renderer *renderer =
+      SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  if (!renderer)
+    printf("Renderer could not be created!\n"
+           "SDL_Error: %s\n",
+           SDL_GetError());
+  else{
+      renderElements(stats,renderer);
+      SDL_DestroyRenderer(renderer);
   }
+
 }
 
 int main(int argc, char *argv[]) {
@@ -282,7 +284,7 @@ int main(int argc, char *argv[]) {
       dump_statistics(stdout, stats);
     }
 
-    renderer(stats, window);
+    creteRenderer(stats, window);
 
     SDL_DestroyWindow(window);
 
