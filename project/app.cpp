@@ -19,7 +19,6 @@ enum {
 struct parameters{
     std::string type;
 
-    //  change name!!!
     std::vector<std::string> gates;
 
     std::string name;
@@ -46,7 +45,6 @@ struct bench_statistics {
   uint32_t number_of_lines = 0;
 };
 
-// change function name!!!
 void map_function(bench_statistics &stats) {
   for (int i = 0; i < stats.el.size(); ++i)
       stats.g.insert(std::make_pair(stats.el.at(i).name,i));
@@ -166,7 +164,6 @@ void setInputsCoord(bench_statistics &stats, std::string name,
 }
 
 SDL_Window *sdlInitialization() {
-  //    initialization
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     printf("SDL2 could not be initialized!\n"
            "SDL2 Error: %s\n",
@@ -174,7 +171,6 @@ SDL_Window *sdlInitialization() {
 
     return 0;
   }
-  TTF_Init();
 
 #if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
   // Disable compositor bypass
@@ -183,8 +179,6 @@ SDL_Window *sdlInitialization() {
     return 0;
   }
 #endif
-
-  // Create window
   SDL_Window *window = SDL_CreateWindow(
       "SDL2_ttf sample", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
       SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
@@ -274,14 +268,11 @@ void renderer(bench_statistics &stats, SDL_Window *window) {
 
     // Destroy renderer
     SDL_DestroyRenderer(renderer);
-
-    // Destroy window
-    SDL_DestroyWindow(window);
   }
 }
 
 int main(int argc, char *argv[]) {
-  //    window initialization
+  //    window initialization. This item belongs to main
   SDL_Window *window = sdlInitialization();
 
   for (int i = 1; i < argc; ++i) {
@@ -297,6 +288,9 @@ int main(int argc, char *argv[]) {
     const auto &gate_lines = reader.gate_lines;
 
     renderer(stats, window);
+
+    // Destroy window
+    SDL_DestroyWindow(window);
 
     // Quit SDL2_ttf
     TTF_Quit();
