@@ -164,9 +164,9 @@ void setCoordinates(std::vector<std::vector<parameters>> &matrix) {
 }
 
 void matrix_to_vector(std::vector<parameters> &vector, const std::vector<std::vector<parameters>> &matrix) {
-    for (const auto &i : matrix){
-        for (const auto &j : i){
-            vector.emplace_back(j);
+    for (const auto &raw: matrix){
+        for (const auto &element : raw){
+            vector.emplace_back(element);
         }
     }
 }
@@ -254,39 +254,6 @@ static void dump_statistics(FILE *f, const bench_statistics &stats) {
             stats.number_of_lines);
 }
 
-SDL_Window *sdl_initialization(){
-
-#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
-    // Disable compositor bypass
-    if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"))
-    {
-        printf("SDL can not disable compositor bypass!\n");
-        return 0;
-    }
-#endif
-    // Initialize SDL2
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        printf("SDL2 could not be initialized!\n"
-               "SDL2 Error: %s\n", SDL_GetError());
-        return 0;
-    }
-
-    // Initialize SDL2_ttf
-    TTF_Init();
-
-    // Create window
-    SDL_Window *window = SDL_CreateWindow("basicviz",
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    if (!window) {
-        printf("Window could not be created!\n"
-               "SDL_Error: %s\n", SDL_GetError());
-    }
-
-    return window;
-}
-
 void eventloop(const bench_statistics &stats, SDL_Renderer *renderer, const std::vector<parameters> &vector_of_elements,
                const std::vector<std::vector<parameters>> &matrix){
 
@@ -304,7 +271,6 @@ void eventloop(const bench_statistics &stats, SDL_Renderer *renderer, const std:
 
     }
 
-    // Event loop exit flag
     bool quit = false;
 
     // Event loop
@@ -349,24 +315,52 @@ void eventloop(const bench_statistics &stats, SDL_Renderer *renderer, const std:
     }
 }
 
-void renderer (const bench_statistics &stats, SDL_Window *window, const std::vector<parameters> &vector_of_elements,
-               const std::vector<std::vector<parameters>> &matrix){
+void renderer(const bench_statistics &stats, SDL_Window *window, const std::vector<parameters> &vector_of_elements,
+              const std::vector<std::vector<parameters>> &matrix){
 
-    // Create renderer
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
     if (!renderer) {
         printf("Renderer could not be created!\n"
                "SDL_Error: %s\n", SDL_GetError());
     } else {
-
         eventloop(stats, renderer, vector_of_elements, matrix);
 
-        // Destroy renderer
         SDL_DestroyRenderer(renderer);
-
-        // Destroy window
-        SDL_DestroyWindow(window);
     }
+}
+
+void sdl_initialization(const bench_statistics &stats, const std::vector<parameters> &vector_of_elements,
+                               const std::vector<std::vector<parameters>> &matrix){
+
+#if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
+    // Disable compositor bypass
+    if(!SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"))
+    {
+        printf("SDL can not disable compositor bypass!\n");
+        return 0;
+    }
+#endif
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        printf("SDL2 could not be initialized!\n"
+               "SDL2 Error: %s\n", SDL_GetError());
+    }
+
+    TTF_Init();
+
+    SDL_Window *window = SDL_CreateWindow("basicviz",
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    if (!window) {
+        printf("Window could not be created!\n"
+               "SDL_Error: %s\n", SDL_GetError());
+    }
+    renderer(stats, window, vector_of_elements, matrix);
+
+    SDL_DestroyWindow(window);
+    TTF_Quit();
+    SDL_Quit();
 }
 
 int
@@ -388,7 +382,6 @@ main(int argc, char *argv[]) {
 
     }
 
-
     //Working with data
     fillGraph(stats, matrix);
     setCoordinates(matrix);
@@ -398,11 +391,7 @@ main(int argc, char *argv[]) {
     debug(stdout, stats, vector_of_elements);
 
     //Visualization
-    SDL_Window *window = sdl_initialization();
-    renderer(stats, window, vector_of_elements, matrix);
-    TTF_Quit();
-    SDL_Quit();
-
+    sdl_initialization(stats, vector_of_elements, matrix);
 
     return 0;
 }
