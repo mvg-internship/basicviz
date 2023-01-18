@@ -26,7 +26,9 @@ struct parameters{
     int x;
     int y;
 
+    // Check if the coordinates are calculated now
     bool setting_coord = false;
+    // Check if the coordinates have been set
     bool set_coord = false;
 };
 struct bench_statistics {
