@@ -108,21 +108,21 @@ static void dump_statistics(FILE *f, const bench_statistics &st) {
           st.number_of_lines);
 }
 
-void setElCoord(bench_statistics &stats, int index_number) {
+void setElCoord(bench_statistics &stats, int indexNumber) {
   // function that specifies coordinate for all elements
   int maxXCoord = 0;
 
-  parameters &data = stats.el[index_number];
-  if (data.set_coord)
+  parameters &indexNumberData = stats.el[indexNumber];
+  if (indexNumberData.set_coord)
     return;
 
-  data.setting_coord = true;
+    indexNumberData.setting_coord = true;
 
-  for (size_t i = 0; i < data.gates.size(); ++i) {
-    if (data.set_coord)
+  for (size_t i = 0; i < indexNumberData.gates.size(); ++i) {
+    if (indexNumberData.set_coord)
       break;
 
-    std::string gate = data.gates.at(i);
+    std::string gate = indexNumberData.gates.at(i);
     int index = stats.gatesMap[gate];
 
     if (stats.el.at(index).set_coord) {
@@ -137,16 +137,16 @@ void setElCoord(bench_statistics &stats, int index_number) {
       maxXCoord = fmax(maxXCoord, stats.el.at(index).x);
     }
   }
-  if (data.setting_coord)
-    data.setting_coord =false;
+  if (indexNumberData.setting_coord)
+      indexNumberData.setting_coord =false;
   int y_coord = 0;
   for (size_t j = 0; j < stats.el.size(); ++j) {
     if (stats.el.at(j).x == maxXCoord + GAPS)
       y_coord = fmax(y_coord, stats.el.at(j).y + GAPS);
   }
-  data.x = maxXCoord + 80;
-  data.y = y_coord;
-  data.set_coord =true;
+  indexNumberData.x = maxXCoord + 80;
+  indexNumberData.y = y_coord;
+  indexNumberData.set_coord =true;
 }
 
 void setInputsCoord(std::vector<parameters> &el, std::string name,
