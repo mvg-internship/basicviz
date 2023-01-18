@@ -124,17 +124,17 @@ void setElCoord(bench_statistics &stats, int indexNumber) {
 
     std::string gate = indexNumberData.gates.at(i);
     int index = stats.gatesMap[gate];
-
-    if (stats.el.at(index).set_coord) {
-      maxXCoord = fmax(maxXCoord, stats.el.at(index).x);
+    parameters &indexData = stats.el[index];
+    if (indexData.set_coord) {
+      maxXCoord = fmax(maxXCoord, indexData.x);
     } else {
-      if (stats.el.at(index).setting_coord) {
-        stats.el.at(index).setting_coord = false;
+      if (indexData.setting_coord) {
+          indexData.setting_coord = false;
         continue;
       }
       setElCoord(stats, index);
 
-      maxXCoord = fmax(maxXCoord, stats.el.at(index).x);
+      maxXCoord = fmax(maxXCoord, indexData.x);
     }
   }
   if (indexNumberData.setting_coord)
