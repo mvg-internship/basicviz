@@ -6,13 +6,16 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 
+#define FONT_PATH   "../assets/ttf/DejaVuSansMono.ttf"
+
 
 enum {
     SCREEN_WIDTH = 800,
     SCREEN_HEIGHT = 600,
     indent = 10,
     fcoef_scale = 4,
-    scoef_scale = 3
+    scoef_scale = 3,
+    text_scale = 2
 };
 
 using namespace lorina;
@@ -254,7 +257,8 @@ static void dump_statistics(FILE *f, const bench_statistics &stats) {
             stats.number_of_lines);
 }
 
-void eventloop(const bench_statistics &stats, SDL_Renderer *renderer, const std::vector<parameters> &vector_of_elements,
+void eventloop(const bench_statistics &stats, SDL_Renderer *renderer, TTF_Font *font,
+               const std::vector<parameters> &vector_of_elements,
                const std::vector<std::vector<parameters>> &matrix){
 
     SDL_Rect elements[vector_of_elements.size()];
@@ -268,6 +272,31 @@ void eventloop(const bench_statistics &stats, SDL_Renderer *renderer, const std:
         // Location of the rects
         elements[i].x = indent + (SCREEN_WIDTH/matrix.size()) * vector_of_elements[i].coeff_x;
         elements[i].y = indent + (SCREEN_HEIGHT / maxStr(matrix)) * vector_of_elements[i].coeff_y;
+
+    }
+
+    SDL_Color textColor           = { 0x00, 0x00, 0x00, 0xFF };
+    SDL_Color textBackgroundColor = { 0x00, 0xAA, 0xFF, 0xFF };
+    SDL_Texture *text[vector_of_elements.size()];
+    SDL_Rect textRect [vector_of_elements.size()];
+
+    for (int i = 0; i < vector_of_elements.size(); ++i) {
+        SDL_Surface *textSurface = TTF_RenderText_Shaded(font, vector_of_elements[i].type.c_str(), textColor, textBackgroundColor);
+        if(!textSurface) {
+            printf("Unable to render text surface!\n"
+                   "SDL2_ttf Error: %s\n", TTF_GetError());
+        } else {
+            text[i] = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+            // Dimensions of the text
+            textRect[i].w = textSurface->w/text_scale;
+            textRect[i].h = textSurface->h/text_scale;
+
+            SDL_FreeSurface(textSurface);
+        }
+        //Location of the text
+        textRect[i].x = indent + (SCREEN_WIDTH/matrix.size()) * vector_of_elements[i].coeff_x;
+        textRect[i].y = indent + (SCREEN_HEIGHT / maxStr(matrix)) * vector_of_elements[i].coeff_y;
 
     }
 
@@ -291,12 +320,16 @@ void eventloop(const bench_statistics &stats, SDL_Renderer *renderer, const std:
         // Clear screen
         SDL_RenderClear(renderer);
 
-        // Set renderer color red to draw the square
         SDL_SetRenderDrawColor(renderer, 0x00, 0xAA, 0xFF, 0xFF);
 
         // Draw filled square
         for (int i = 0; i < vector_of_elements.size(); ++i) {
             SDL_RenderFillRect(renderer, &elements[i]);
+        }
+
+        // Draw text
+        for (int i = 0; i < vector_of_elements.size(); ++i) {
+            SDL_RenderCopy(renderer, text[i], NULL, &textRect[i]);
         }
 
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
@@ -315,7 +348,8 @@ void eventloop(const bench_statistics &stats, SDL_Renderer *renderer, const std:
     }
 }
 
-void renderer(const bench_statistics &stats, SDL_Window *window, const std::vector<parameters> &vector_of_elements,
+void renderer(const bench_statistics &stats, SDL_Window *window, TTF_Font *font,
+              const std::vector<parameters> &vector_of_elements,
               const std::vector<std::vector<parameters>> &matrix){
 
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -324,14 +358,14 @@ void renderer(const bench_statistics &stats, SDL_Window *window, const std::vect
         printf("Renderer could not be created!\n"
                "SDL_Error: %s\n", SDL_GetError());
     } else {
-        eventloop(stats, renderer, vector_of_elements, matrix);
+        eventloop(stats, renderer, font, vector_of_elements, matrix);
 
         SDL_DestroyRenderer(renderer);
     }
 }
 
 void sdl_initialization(const bench_statistics &stats, const std::vector<parameters> &vector_of_elements,
-                               const std::vector<std::vector<parameters>> &matrix){
+                        const std::vector<std::vector<parameters>> &matrix){
 
 #if defined linux && SDL_VERSION_ATLEAST(2, 0, 8)
     // Disable compositor bypass
@@ -356,7 +390,13 @@ void sdl_initialization(const bench_statistics &stats, const std::vector<paramet
         printf("Window could not be created!\n"
                "SDL_Error: %s\n", SDL_GetError());
     }
-    renderer(stats, window, vector_of_elements, matrix);
+
+    TTF_Font *font = TTF_OpenFont(FONT_PATH, 40);
+    if(!font) {
+        printf("Unable to load font: '%s'!\n"
+               "SDL2_ttf Error: %s\n", FONT_PATH, TTF_GetError());
+    }
+    renderer(stats, window, font, vector_of_elements, matrix);
 
     SDL_DestroyWindow(window);
     TTF_Quit();
