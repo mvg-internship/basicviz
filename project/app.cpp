@@ -154,12 +154,15 @@ void setElCoord(bench_statistics &stats, int indexNumber) {
 void setInputsCoord(std::vector<parameters> &el, std::string name,
                     int index_number) {
   //    function that specifies coordinate for inputs
-  for (size_t i = 0; i < el.size(); ++i)
-    if (el.at(i).name == name) {
-      el.at(i).x = 0;
-      el.at(i).y = (INPUT_HEIGHT+ GAPS)  * index_number;
-      el.at(i).set_coord =true;
-    }
+  for (size_t i = 0; i < el.size(); ++i){
+      parameters inputEl = el.at(i);
+
+      if(inputEl.name==name){
+          inputEl.x=0;
+          inputEl.y=(INPUT_HEIGHT+GAPS)*index_number;
+          inputEl.set_coord=true;
+      }
+  }
 }
 
 SDL_Window *sdlInitialization() {
