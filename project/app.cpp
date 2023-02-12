@@ -27,9 +27,9 @@ struct parameters{
     int y;
 
     // Check if the coordinates are calculated now
-    bool setting_coord = false;
+    bool coord_calculation = false;
     // Check if the coordinates have been set
-    bool set_coord = false;
+    bool established_coordinate = false;
 };
 struct bench_statistics {
   uint32_t number_of_inputs = 0;
@@ -115,23 +115,23 @@ void setElCoord(bench_statistics &stats, int indexNumber) {
   int maxXCoord = 0;
 
   parameters &indexNumberData = stats.el[indexNumber];
-  if (indexNumberData.set_coord)
+  if (indexNumberData.established_coordinate)
     return;
 
-    indexNumberData.setting_coord = true;
+    indexNumberData.coord_calculation = true;
 
   for (size_t i = 0; i < indexNumberData.gates.size(); ++i) {
-    if (indexNumberData.set_coord)
+    if (indexNumberData.established_coordinate)
       break;
 
     std::string gate = indexNumberData.gates.at(i);
     int index = stats.gatesMap[gate];
     parameters &indexData = stats.el[index];
-    if (indexData.set_coord) {
+    if (indexData.established_coordinate) {
       maxXCoord = fmax(maxXCoord, indexData.x);
     } else {
-      if (indexData.setting_coord) {
-          indexData.setting_coord = false;
+      if (indexData.coord_calculation) {
+          indexData.coord_calculation = false;
         continue;
       }
       setElCoord(stats, index);
@@ -139,8 +139,8 @@ void setElCoord(bench_statistics &stats, int indexNumber) {
       maxXCoord = fmax(maxXCoord, indexData.x);
     }
   }
-  if (indexNumberData.setting_coord)
-      indexNumberData.setting_coord =false;
+  if (indexNumberData.coord_calculation)
+      indexNumberData.coord_calculation =false;
   int y_coord = 0;
   for (size_t j = 0; j < stats.el.size(); ++j) {
     if (stats.el.at(j).x == maxXCoord + GAPS)
@@ -148,7 +148,7 @@ void setElCoord(bench_statistics &stats, int indexNumber) {
   }
   indexNumberData.x = maxXCoord + 80;
   indexNumberData.y = y_coord;
-  indexNumberData.set_coord =true;
+  indexNumberData.established_coordinate =true;
 }
 
 void setInputsCoord(std::vector<parameters> &el, std::string name,
@@ -160,7 +160,7 @@ void setInputsCoord(std::vector<parameters> &el, std::string name,
       if(inputEl.name==name){
           inputEl.x=0;
           inputEl.y=(INPUT_HEIGHT+GAPS)*index_number;
-          inputEl.set_coord=true;
+          inputEl.established_coordinate=true;
       }
   }
 }
