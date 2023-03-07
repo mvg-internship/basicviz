@@ -1,5 +1,5 @@
 add_executable(benchstat
-  bench.cpp)
+  bench.cpp paint.cpp)
 
 target_link_libraries(benchstat
   PRIVATE
@@ -20,3 +20,13 @@ target_link_libraries(test-viz
         SDL2_ttf::SDL2_ttf
         Lorina
         )
+
+add_executable(viz_example viz_example.cpp)
+target_link_libraries(viz_example
+        PRIVATE
+        SDL2::SDL2
+        SDL2_ttf::SDL2_ttf
+        PugiXML
+        )
+
+
