@@ -18,7 +18,7 @@ enum StatusCode {
     SDL_INIT_FAILURE
 };
 
-const char *status_messages[4]{
+const char *status_messages[] = {
         "Success\n",
         "Filename was not provided\n",
         "Parser failure\n",
@@ -145,6 +145,7 @@ void draw(SDL_Renderer *renderer, const std::vector<NormalizedElement> &elements
 
         //Placing connection Lines on the screen
         for (const NormalizedConnection &n_connection: n_elem.connections) {
+            //СДелать копирование
             for (int i = 1; i < n_connection.vertices.size(); i++) {
                 SDL_RenderDrawLineF(renderer, normalizedToScreenX(n_connection.vertices[i - 1].n_x),
                                     normalizedToScreenY(n_connection.vertices[i - 1].n_y),
