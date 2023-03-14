@@ -1,5 +1,0 @@
-[35m[1mScanning dependencies of target pugixml-static[0m
-[ 50%] [32mBuilding CXX object CMakeFiles/pugixml-static.dir/src/pugixml.cpp.obj[0m
-pugixml.cpp
-[100%] [32m[1mLinking CXX static library pugixml.lib[0m
-[100%] Built target pugixml-static
