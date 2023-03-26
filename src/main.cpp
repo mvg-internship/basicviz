@@ -13,10 +13,6 @@
 #include <vector>
 #include <iostream>
 #include <string>
-#include <windows.h>
-
-const int screen_width = GetSystemMetrics(SM_CXSCREEN);
-const int screen_height = GetSystemMetrics(SM_CYSCREEN);
 
 enum StatusCode {
   SUCCESS = 0,
@@ -32,13 +28,13 @@ const char *status_messages[] = {
     "SDL could not be initialized\n"
 };
 
-const char *parser_e_id = "e_id";
-const char *parser_c_id = "c_id";
-const char *parser_x = "x";
-const char *parser_y = "y";
-const char *parser_height = "height";
-const char *parser_width = "width";
-const char *parser_end_elem = "end_element";
+const char * const parser_e_id = "e_id";
+const char * const parser_c_id = "c_id";
+const char * const parser_x = "x";
+const char * const parser_y = "y";
+const char * const parser_height = "height";
+const char * const parser_width = "width";
+const char * const parser_end_elem = "end_element";
 
 struct NormalizedPoint {
   float n_x;
@@ -64,17 +60,14 @@ struct NormalizedElement {
   std::vector<NormalizedConnection> connections;
 
   NormalizedElement() : id(-1), n_w(0), n_h(0) {}
-
-  friend std::ostream &operator<<(std::ostream &out,
-          const NormalizedElement &element_to_print);
 };
 
-float normalizedToScreenX(const float n_x) {
-  return n_x * screen_width;
+float normalizedToScreenX(const float n_x, const int screen_w) {
+  return n_x * screen_w;
 }
 
-float normalizedToScreenY(const float n_y) {
-  return n_y * screen_height;
+float normalizedToScreenY(const float n_y, const int screen_h) {
+  return n_y * screen_h;
 }
 
 void drawBackground(SDL_Renderer *renderer) {
@@ -150,28 +143,33 @@ void print(const std::vector<NormalizedElement> &elements_to_print) {
   }
 }
 
-void draw(SDL_Renderer *renderer,
-          const std::vector<NormalizedElement> &elements_to_draw) {
+void draw(SDL_Window *window,
+          const std::vector<NormalizedElement> &elements_to_draw,
+          const int screen_w,
+          const int screen_h) {
+  SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
+                                              SDL_RENDERER_ACCELERATED);
+
   drawBackground(renderer);
 
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 
   for (const NormalizedElement &n_elem: elements_to_draw) {
     SDL_FRect rect;
-    rect.x = normalizedToScreenX(n_elem.point.n_x);
-    rect.y = normalizedToScreenY(n_elem.point.n_y);
-    rect.w = normalizedToScreenX(n_elem.n_w);
-    rect.h = normalizedToScreenY(n_elem.n_h);
+    rect.x = normalizedToScreenX(n_elem.point.n_x, screen_w);
+    rect.y = normalizedToScreenY(n_elem.point.n_y, screen_h);
+    rect.w = normalizedToScreenX(n_elem.n_w, screen_w);
+    rect.h = normalizedToScreenY(n_elem.n_h, screen_h);
     SDL_RenderDrawRectF(renderer, &rect);
 
     //Placing connection Lines on the screen
     for (const NormalizedConnection &n_connection: n_elem.connections) {
       for (int i = 1; i < n_connection.vertices.size(); i++) {
         SDL_RenderDrawLineF(renderer,
-                            normalizedToScreenX(n_connection.vertices[i - 1].n_x),
-                            normalizedToScreenY(n_connection.vertices[i - 1].n_y),
-                            normalizedToScreenX(n_connection.vertices[i].n_x),
-                            normalizedToScreenY(n_connection.vertices[i].n_y));
+                            normalizedToScreenX(n_connection.vertices[i - 1].n_x, screen_w),
+                            normalizedToScreenY(n_connection.vertices[i - 1].n_y, screen_h),
+                            normalizedToScreenX(n_connection.vertices[i].n_x, screen_w),
+                            normalizedToScreenY(n_connection.vertices[i].n_y, screen_h));
       }
 
     }
@@ -205,12 +203,17 @@ int main(int argc, char *argv[]) {
 
   std::cout << status_messages[SUCCESS];
 
+  //Get screen dimensions
+  SDL_DisplayMode display;
+  SDL_GetCurrentDisplayMode(0, &display);
+  static const int screen_w = display.w;
+  static const int screen_h = display.h;
+
   SDL_Window *window = SDL_CreateWindow("test-viz", 0, 0,
-                                        screen_width, screen_height,
+                                        screen_w, screen_h,
                                         SDL_WINDOW_SHOWN);
-  SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
-                                              SDL_RENDERER_ACCELERATED);
-  draw(renderer, normalized_elements);
+
+  draw(window, normalized_elements, screen_w, screen_h);
 
   //Event loop
   bool is_running = true;
