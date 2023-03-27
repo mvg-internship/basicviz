@@ -189,6 +189,11 @@ void drawFrame(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect* src) {
   SDL_RenderPresent(renderer);
 }
 
+void scaleFrame(SDL_Rect& src, int increase_by) {
+  src.w += increase_by;
+  src.h += increase_by;
+}
+
 int main(int argc, char *argv[]) {
   //Parse text file
   if (argc < 2) {
@@ -235,8 +240,16 @@ int main(int argc, char *argv[]) {
     drawFrame(renderer, texture, &frame_area);
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-      if (event.type == SDL_QUIT) {
-        is_running = false;
+      if (event.type == SDL_QUIT) is_running = false;
+      if (event.type == SDL_KEYDOWN) {
+        switch(event.key.keysym.sym) {
+          case SDLK_KP_PLUS:
+            scaleFrame(frame_area, 10);
+            break;
+          case SDLK_KP_MINUS:
+            scaleFrame(frame_area, -10);
+            break;
+        }
       }
     }
   }
