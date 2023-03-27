@@ -143,17 +143,18 @@ void print(const std::vector<NormalizedElement> &elements_to_print) {
   }
 }
 
-void draw(SDL_Window *window,
+SDL_Texture* getTexture(SDL_Renderer *renderer,
           const std::vector<NormalizedElement> &elements_to_draw,
           const int screen_w,
           const int screen_h) {
-  SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
-                                              SDL_RENDERER_ACCELERATED);
+  auto texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 1920, 1080);
+  SDL_SetRenderTarget(renderer, texture);
 
   drawBackground(renderer);
 
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 
+  //Placing elements on the texture
   for (const NormalizedElement &n_elem: elements_to_draw) {
     SDL_FRect rect;
     rect.x = normalizedToScreenX(n_elem.point.n_x, screen_w);
@@ -162,7 +163,7 @@ void draw(SDL_Window *window,
     rect.h = normalizedToScreenY(n_elem.n_h, screen_h);
     SDL_RenderDrawRectF(renderer, &rect);
 
-    //Placing connection Lines on the screen
+    //Placing connection lines on the texture
     for (const NormalizedConnection &n_connection: n_elem.connections) {
       for (int i = 1; i < n_connection.vertices.size(); i++) {
         SDL_RenderDrawLineF(renderer,
@@ -175,6 +176,14 @@ void draw(SDL_Window *window,
     }
   }
 
+  //Set renderer to render window
+  SDL_SetRenderTarget(renderer, nullptr);
+
+  return texture;
+}
+
+void drawFrame(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect* src) {
+  SDL_RenderCopy(renderer, texture, src, nullptr);
   SDL_RenderPresent(renderer);
 }
 
@@ -212,12 +221,16 @@ int main(int argc, char *argv[]) {
   SDL_Window *window = SDL_CreateWindow("test-viz", 0, 0,
                                         screen_w, screen_h,
                                         SDL_WINDOW_SHOWN);
+  SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
+                                              SDL_RENDERER_ACCELERATED);
+  auto texture = getTexture(renderer, normalized_elements, screen_w, screen_h);
 
-  draw(window, normalized_elements, screen_w, screen_h);
+  SDL_Rect frame_area{0, 0, screen_w, screen_h};
 
   //Event loop
   bool is_running = true;
   while (is_running) {
+    drawFrame(renderer, texture, &frame_area);
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) is_running = false;
