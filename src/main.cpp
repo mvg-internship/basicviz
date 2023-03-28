@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) is_running = false;
-      if (event.type == SDL_KEYDOWN) {
+      else if (event.type == SDL_KEYDOWN) {
         switch(event.key.keysym.sym) {
           case SDLK_KP_PLUS:
             scaleFrame(1.1, normalized_elements);
@@ -275,6 +275,10 @@ int main(int argc, char *argv[]) {
             is_running = false;
             break;
         }
+      }
+      else if (event.type == SDL_MOUSEWHEEL) {
+        scaleFrame(1 + event.wheel.y * 0.1, normalized_elements);
+        drawFrame(renderer, normalized_elements);
       }
     }
   }
