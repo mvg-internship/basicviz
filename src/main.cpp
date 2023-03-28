@@ -52,6 +52,8 @@ struct NormalizedConnection {
 
   NormalizedConnection() : id(-1), start_element_id(-1), end_element_id(-1) {}
   void normalizedToScreen(const int screen_w, const int screen_h);
+  void scale(float scaling_factor, const int mouse_x, const int mouse_y);
+  void move(int dx, int dy);
 };
 
 struct NormalizedElement {
@@ -63,6 +65,8 @@ struct NormalizedElement {
 
   NormalizedElement() : id(-1), n_w(0), n_h(0) {}
   void normalizedToScreen(const int screen_w, const int screen_h);
+  void scale(float scaling_factor, const int mouse_x, const int mouse_y);
+  void move(int dx, int dy);
 };
 
 float normalizedToScreenX(const float n_x, const int screen_w) {
@@ -71,6 +75,40 @@ float normalizedToScreenX(const float n_x, const int screen_w) {
 
 float normalizedToScreenY(const float n_y, const int screen_h) {
   return n_y * screen_h;
+}
+
+void NormalizedElement::move(int dx, int dy) {
+  scr_rect.x += dx;
+  scr_rect.y += dy;
+ 
+  for(NormalizedConnection& connection_to_move : connections) {
+    connection_to_move.move(dx, dy);
+  }
+}
+
+void NormalizedConnection::move(int dx, int dy) {
+  for(SDL_FPoint& vertex_to_move : scr_vertices) {
+    vertex_to_move.x += dx;
+    vertex_to_move.y += dy;
+  }
+}
+
+void NormalizedElement::scale(float scaling_factor, const int mouse_x, const int mouse_y) {
+  scr_rect.x = mouse_x + (scr_rect.x - mouse_x) * scaling_factor;
+  scr_rect.y = mouse_y + (scr_rect.y - mouse_y) * scaling_factor;
+  scr_rect.w *= scaling_factor;
+  scr_rect.h *= scaling_factor;
+
+  for(NormalizedConnection& connection_to_scale : connections) {
+    connection_to_scale.scale(scaling_factor, mouse_x, mouse_y);
+  }
+}
+
+void NormalizedConnection::scale(float scaling_factor, const int mouse_x, const int mouse_y) {
+  for(SDL_FPoint& vertex_to_scale : scr_vertices) {
+    vertex_to_scale.x = mouse_x + (vertex_to_scale.x - mouse_x) * scaling_factor;
+    vertex_to_scale.y = mouse_y + (vertex_to_scale.y - mouse_y) * scaling_factor;
+  }
 }
 
 void NormalizedConnection::normalizedToScreen(const int screen_w, const int screen_h) {
@@ -197,38 +235,18 @@ void drawFrame(SDL_Renderer* renderer, const std::vector<NormalizedElement>& ele
   SDL_RenderPresent(renderer);
 }
 
-void scaleFrame(float scaling_factor, std::vector<NormalizedElement>& elements_to_scale) {
+void scaleViewport(float scaling_factor, std::vector<NormalizedElement>& elements_to_scale) {
   int mouse_x, mouse_y;
   SDL_GetMouseState(&mouse_x, &mouse_y);
-
-  std::cout << mouse_x << ' ' << mouse_y << std::endl;
   
   for(NormalizedElement& element_to_scale : elements_to_scale) {
-    element_to_scale.scr_rect.x = mouse_x + (element_to_scale.scr_rect.x - mouse_x) * scaling_factor;
-    element_to_scale.scr_rect.y = mouse_y + (element_to_scale.scr_rect.y - mouse_y) * scaling_factor;
-    element_to_scale.scr_rect.w *= scaling_factor;
-    element_to_scale.scr_rect.h *= scaling_factor;
- 
-    for(NormalizedConnection& connection_to_scale : element_to_scale.connections) {
-      for(SDL_FPoint& vertex_to_scale : connection_to_scale.scr_vertices) {
-        vertex_to_scale.x = mouse_x + (vertex_to_scale.x - mouse_x) * scaling_factor;
-        vertex_to_scale.y = mouse_y + (vertex_to_scale.y - mouse_y) * scaling_factor;
-      }
-    }
+    element_to_scale.scale(scaling_factor, mouse_x, mouse_y);
   }
 }
 
 void moveViewport(int dx, int dy, std::vector<NormalizedElement>& elements_to_scale) {
   for(NormalizedElement& element_to_scale : elements_to_scale) {
-    element_to_scale.scr_rect.x += dx;
-    element_to_scale.scr_rect.y += dy;
- 
-    for(NormalizedConnection& connection_to_scale : element_to_scale.connections) {
-      for(SDL_FPoint& vertex_to_scale : connection_to_scale.scr_vertices) {
-        vertex_to_scale.x += dx;
-        vertex_to_scale.y += dy;
-      }
-    }
+    element_to_scale.move(dx, dy);
   }
 }
 
@@ -301,11 +319,11 @@ int main(int argc, char *argv[]) {
       else if (event.type == SDL_KEYDOWN) {
         switch(event.key.keysym.sym) {
           case SDLK_KP_PLUS:
-            scaleFrame(1.1, normalized_elements);
+            scaleViewport(1.1, normalized_elements);
             drawFrame(renderer, normalized_elements);
             break;
           case SDLK_KP_MINUS:
-            scaleFrame(0.9, normalized_elements);
+            scaleViewport(0.9, normalized_elements);
             drawFrame(renderer, normalized_elements);
             break;
           case SDLK_ESCAPE:
@@ -314,7 +332,7 @@ int main(int argc, char *argv[]) {
         }
       }
       else if (event.type == SDL_MOUSEWHEEL) {
-        scaleFrame(1 + event.wheel.y * 0.1, normalized_elements);
+        scaleViewport(1 + event.wheel.y * 0.1, normalized_elements);
         drawFrame(renderer, normalized_elements);
       }
     }
