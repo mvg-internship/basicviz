@@ -76,9 +76,12 @@ void drawBackground(SDL_Renderer *renderer) {
 }
 
 int parseInput(const char *filename,
-               std::vector<NormalizedElement> &elements_to_parse) {
+    std::vector<NormalizedElement> &elements_to_parse) {
   pugi::xml_document file;
-  if (!file.load_file(filename)) return PARSER_FAILURE;
+  if (!file.load_file(filename)) {
+    return PARSER_FAILURE;
+  }
+
   pugi::xml_node elements = file.child("logic_scheme").child("elements");
 
   //Parsing elements from given file
@@ -110,18 +113,15 @@ int parseInput(const char *filename,
         parsed_vertex.n_y = std::stof(vertex.attribute(parser_y).value());
         parsed_connection.vertices.push_back(parsed_vertex);
       }
-
       parsed_element.connections.push_back(parsed_connection);
     }
-
     elements_to_parse.push_back(parsed_element);
   }
-
   return 0;
 }
 
 std::ostream &operator<<(std::ostream &out,
-        const NormalizedElement &element_to_print) {
+    const NormalizedElement &element_to_print) {
   out << element_to_print.id << ' ' <<
   element_to_print.point.n_x << ' ' <<
   element_to_print.point.n_y << std::endl;
@@ -133,7 +133,6 @@ std::ostream &operator<<(std::ostream &out,
     }
     std::cout << std::endl;
   }
-
   return out;
 }
 
@@ -144,9 +143,9 @@ void print(const std::vector<NormalizedElement> &elements_to_print) {
 }
 
 void draw(SDL_Window *window,
-          const std::vector<NormalizedElement> &elements_to_draw,
-          const int screen_w,
-          const int screen_h) {
+    const std::vector<NormalizedElement> &elements_to_draw,
+    const int screen_w,
+    const int screen_h) {
   SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
                                               SDL_RENDERER_ACCELERATED);
 
@@ -171,10 +170,8 @@ void draw(SDL_Window *window,
                             normalizedToScreenX(n_connection.vertices[i].n_x, screen_w),
                             normalizedToScreenY(n_connection.vertices[i].n_y, screen_h));
       }
-
     }
   }
-
   SDL_RenderPresent(renderer);
 }
 
@@ -206,13 +203,12 @@ int main(int argc, char *argv[]) {
   //Get screen dimensions
   SDL_DisplayMode display;
   SDL_GetCurrentDisplayMode(0, &display);
-  static const int screen_w = display.w;
-  static const int screen_h = display.h;
+  const int screen_w = display.w;
+  const int screen_h = display.h;
 
   SDL_Window *window = SDL_CreateWindow("test-viz", 0, 0,
                                         screen_w, screen_h,
                                         SDL_WINDOW_SHOWN);
-
   draw(window, normalized_elements, screen_w, screen_h);
 
   //Event loop
@@ -220,13 +216,14 @@ int main(int argc, char *argv[]) {
   while (is_running) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-      if (event.type == SDL_QUIT) is_running = false;
+      if (event.type == SDL_QUIT) {
+        is_running = false;
+      }
     }
   }
 
   //Shutdown
   SDL_DestroyWindow(window);
   SDL_Quit();
-
   return 0;
 }
