@@ -47,19 +47,22 @@ struct NormalizedConnection {
   unsigned int id;
   unsigned int start_element_id;
   unsigned int end_element_id;
-  std::vector<NormalizedPoint> vertices;
+  std::vector<NormalizedPoint> n_vertices;
+  std::vector<SDL_FPoint> scr_vertices;
 
   NormalizedConnection() : id(-1), start_element_id(-1), end_element_id(-1) {}
+  void normalizedToScreen(const int screen_w, const int screen_h);
 };
 
 struct NormalizedElement {
   unsigned int id;
-  NormalizedPoint point;
-  float n_w;
-  float n_h;
+  NormalizedPoint n_point;
+  float n_w, n_h;
+  SDL_FRect scr_rect;
   std::vector<NormalizedConnection> connections;
 
   NormalizedElement() : id(-1), n_w(0), n_h(0) {}
+  void normalizedToScreen(const int screen_w, const int screen_h);
 };
 
 float normalizedToScreenX(const float n_x, const int screen_w) {
@@ -68,6 +71,22 @@ float normalizedToScreenX(const float n_x, const int screen_w) {
 
 float normalizedToScreenY(const float n_y, const int screen_h) {
   return n_y * screen_h;
+}
+
+void NormalizedConnection::normalizedToScreen(const int screen_w, const int screen_h) {
+  for(const NormalizedPoint& n_vertex : n_vertices) {
+      SDL_FPoint vertex;
+      vertex.x = normalizedToScreenX(n_vertex.n_x, screen_w);
+      vertex.y = normalizedToScreenX(n_vertex.n_y, screen_h);
+      scr_vertices.push_back(vertex);
+    }
+}
+
+void NormalizedElement::normalizedToScreen(const int screen_w, const int screen_h) {
+    scr_rect.x = normalizedToScreenX(n_point.n_x, screen_w);
+    scr_rect.y = normalizedToScreenY(n_point.n_y, screen_h);
+    scr_rect.w = normalizedToScreenX(n_w, screen_w);
+    scr_rect.h = normalizedToScreenY(n_h, screen_h);
 }
 
 void drawBackground(SDL_Renderer *renderer) {
@@ -87,8 +106,8 @@ int parseInput(const char *filename,
       element = element.next_sibling()) {
     NormalizedElement parsed_element;
     parsed_element.id = atoi(element.attribute(parser_e_id).value());
-    parsed_element.point.n_x = std::stof(element.attribute(parser_x).value());
-    parsed_element.point.n_y = std::stof(element.attribute(parser_y).value());
+    parsed_element.n_point.n_x = std::stof(element.attribute(parser_x).value());
+    parsed_element.n_point.n_y = std::stof(element.attribute(parser_y).value());
     parsed_element.n_h = std::stof(element.attribute(parser_height).value());
     parsed_element.n_w = std::stof(element.attribute(parser_width).value());
 
@@ -101,14 +120,14 @@ int parseInput(const char *filename,
       parsed_connection.start_element_id = parsed_element.id;
       parsed_connection.end_element_id = atoi(connection.attribute(parser_end_elem).value());
 
-      //Parsing vertices for given connection
+      //Parsing n_vertices for given connection
       for (pugi::xml_node vertex = connection.first_child();
           vertex;
           vertex = vertex.next_sibling()) {
         NormalizedPoint parsed_vertex;
         parsed_vertex.n_x = std::stof(vertex.attribute(parser_x).value());
         parsed_vertex.n_y = std::stof(vertex.attribute(parser_y).value());
-        parsed_connection.vertices.push_back(parsed_vertex);
+        parsed_connection.n_vertices.push_back(parsed_vertex);
       }
 
       parsed_element.connections.push_back(parsed_connection);
@@ -123,11 +142,11 @@ int parseInput(const char *filename,
 std::ostream &operator<<(std::ostream &out,
         const NormalizedElement &element_to_print) {
   out << element_to_print.id << ' ' <<
-  element_to_print.point.n_x << ' ' <<
-  element_to_print.point.n_y << std::endl;
+  element_to_print.n_point.n_x << ' ' <<
+  element_to_print.n_point.n_y << std::endl;
   for (const NormalizedConnection &connection: element_to_print.connections) {
     out << "  " << connection.id;
-    for (const NormalizedPoint &vertex: connection.vertices) {
+    for (const NormalizedPoint &vertex: connection.n_vertices) {
       out << ' ' << vertex.n_x << ' '
       << vertex.n_y;
     }
@@ -143,53 +162,56 @@ void print(const std::vector<NormalizedElement> &elements_to_print) {
   }
 }
 
-SDL_Texture* getTexture(SDL_Renderer *renderer,
-          const std::vector<NormalizedElement> &elements_to_draw,
+void convertNormToScreen(std::vector<NormalizedElement> &elements_to_convert,
           const int screen_w,
           const int screen_h) {
-  auto texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 1920, 1080);
-  SDL_SetRenderTarget(renderer, texture);
+  //Converting normalized coordinates to screen
+  for (NormalizedElement &n_elem: elements_to_convert) {
+    n_elem.normalizedToScreen(screen_w, screen_h);
 
+    for (NormalizedConnection &n_connection: n_elem.connections) {
+      n_connection.normalizedToScreen(screen_w, screen_h);  
+    }
+  }
+}
+
+void drawFrame(SDL_Renderer* renderer, const std::vector<NormalizedElement>& elements_to_draw) {
   drawBackground(renderer);
 
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-
-  //Placing elements on the texture
-  for (const NormalizedElement &n_elem: elements_to_draw) {
-    SDL_FRect rect;
-    rect.x = normalizedToScreenX(n_elem.point.n_x, screen_w);
-    rect.y = normalizedToScreenY(n_elem.point.n_y, screen_h);
-    rect.w = normalizedToScreenX(n_elem.n_w, screen_w);
-    rect.h = normalizedToScreenY(n_elem.n_h, screen_h);
-    SDL_RenderDrawRectF(renderer, &rect);
-
-    //Placing connection lines on the texture
-    for (const NormalizedConnection &n_connection: n_elem.connections) {
-      for (int i = 1; i < n_connection.vertices.size(); i++) {
+  
+  for(const NormalizedElement& element_to_draw : elements_to_draw) {
+    SDL_RenderDrawRectF(renderer, &element_to_draw.scr_rect);
+    for(const NormalizedConnection& connection_to_draw : element_to_draw.connections) {
+      for(size_t i = 1; i < connection_to_draw.scr_vertices.size(); i++) {
         SDL_RenderDrawLineF(renderer,
-                            normalizedToScreenX(n_connection.vertices[i - 1].n_x, screen_w),
-                            normalizedToScreenY(n_connection.vertices[i - 1].n_y, screen_h),
-                            normalizedToScreenX(n_connection.vertices[i].n_x, screen_w),
-                            normalizedToScreenY(n_connection.vertices[i].n_y, screen_h));
+          connection_to_draw.scr_vertices[i - 1].x,
+          connection_to_draw.scr_vertices[i - 1].y,
+          connection_to_draw.scr_vertices[i].x,
+          connection_to_draw.scr_vertices[i].y);
       }
-
-    }
+    } 
   }
-
-  //Set renderer to render window
-  SDL_SetRenderTarget(renderer, nullptr);
-
-  return texture;
-}
-
-void drawFrame(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect* src) {
-  SDL_RenderCopy(renderer, texture, src, nullptr);
   SDL_RenderPresent(renderer);
 }
 
-void scaleFrame(SDL_Rect& src, int increase_by) {
-  src.w += increase_by;
-  src.h += increase_by;
+void scaleFrame(float scaling_factor, std::vector<NormalizedElement>& elements_to_scale) {
+  int mouse_x, mouse_y;
+  SDL_GetMouseState(&mouse_x, &mouse_y);
+  
+  for(NormalizedElement& element_to_scale : elements_to_scale) {
+    element_to_scale.scr_rect.x = mouse_x + (element_to_scale.scr_rect.x - mouse_x) * scaling_factor;
+    element_to_scale.scr_rect.y = mouse_y + (element_to_scale.scr_rect.y - mouse_y) * scaling_factor;
+    element_to_scale.scr_rect.w *= scaling_factor;
+    element_to_scale.scr_rect.h *= scaling_factor;
+ 
+    for(NormalizedConnection& connection_to_scale : element_to_scale.connections) {
+      for(SDL_FPoint& vertex_to_scale : connection_to_scale.scr_vertices) {
+        vertex_to_scale.x = mouse_x + (vertex_to_scale.x - mouse_x) * scaling_factor;
+        vertex_to_scale.y = mouse_y + (vertex_to_scale.y - mouse_y) * scaling_factor;
+      }
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -228,24 +250,27 @@ int main(int argc, char *argv[]) {
                                         SDL_WINDOW_SHOWN);
   SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
                                               SDL_RENDERER_ACCELERATED);
-  auto texture = getTexture(renderer, normalized_elements, screen_w, screen_h);
-
-  SDL_Rect frame_area{0, 0, screen_w, screen_h};
-
+  convertNormToScreen(normalized_elements, screen_w, screen_h);
+  drawFrame(renderer, normalized_elements);
+  
   //Event loop
   bool is_running = true;
   while (is_running) {
-    drawFrame(renderer, texture, &frame_area);
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) is_running = false;
       if (event.type == SDL_KEYDOWN) {
         switch(event.key.keysym.sym) {
           case SDLK_KP_PLUS:
-            scaleFrame(frame_area, 10);
+            scaleFrame(1.1, normalized_elements);
+            drawFrame(renderer, normalized_elements);
             break;
           case SDLK_KP_MINUS:
-            scaleFrame(frame_area, -10);
+            scaleFrame(0.9, normalized_elements);
+            drawFrame(renderer, normalized_elements);
+            break;
+          case SDLK_ESCAPE:
+            is_running = false;
             break;
         }
       }
