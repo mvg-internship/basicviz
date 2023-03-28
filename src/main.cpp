@@ -198,6 +198,8 @@ void drawFrame(SDL_Renderer* renderer, const std::vector<NormalizedElement>& ele
 void scaleFrame(float scaling_factor, std::vector<NormalizedElement>& elements_to_scale) {
   int mouse_x, mouse_y;
   SDL_GetMouseState(&mouse_x, &mouse_y);
+
+  std::cout << mouse_x << ' ' << mouse_y << std::endl;
   
   for(NormalizedElement& element_to_scale : elements_to_scale) {
     element_to_scale.scr_rect.x = mouse_x + (element_to_scale.scr_rect.x - mouse_x) * scaling_factor;
@@ -209,6 +211,20 @@ void scaleFrame(float scaling_factor, std::vector<NormalizedElement>& elements_t
       for(SDL_FPoint& vertex_to_scale : connection_to_scale.scr_vertices) {
         vertex_to_scale.x = mouse_x + (vertex_to_scale.x - mouse_x) * scaling_factor;
         vertex_to_scale.y = mouse_y + (vertex_to_scale.y - mouse_y) * scaling_factor;
+      }
+    }
+  }
+}
+
+void moveViewport(int dx, int dy, std::vector<NormalizedElement>& elements_to_scale) {
+  for(NormalizedElement& element_to_scale : elements_to_scale) {
+    element_to_scale.scr_rect.x += dx;
+    element_to_scale.scr_rect.y += dy;
+ 
+    for(NormalizedConnection& connection_to_scale : element_to_scale.connections) {
+      for(SDL_FPoint& vertex_to_scale : connection_to_scale.scr_vertices) {
+        vertex_to_scale.x += dx;
+        vertex_to_scale.y += dy;
       }
     }
   }
@@ -255,10 +271,31 @@ int main(int argc, char *argv[]) {
   
   //Event loop
   bool is_running = true;
+  bool is_dragging = false;
+  int mouse_x1 = 0;
+  int mouse_y1 = 0;
+  int mouse_x2 = 0;
+  int mouse_y2 = 0;
   while (is_running) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) is_running = false;
+      else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        is_dragging = true;
+        SDL_GetMouseState(&mouse_x1, &mouse_y1);
+      }
+      else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
+        is_dragging = false;
+        mouse_x1 = 0;
+        mouse_y1 = 0;
+        mouse_x2 = 0;
+        mouse_y2 = 0;
+      }
+      else if(is_dragging && SDL_GetMouseState(&mouse_x2, &mouse_y2)) {
+        moveViewport(mouse_x2 - mouse_x1, mouse_y2 - mouse_y1, normalized_elements);
+        drawFrame(renderer, normalized_elements);
+        SDL_GetMouseState(&mouse_x1, &mouse_y1);
+      }
       else if (event.type == SDL_KEYDOWN) {
         switch(event.key.keysym.sym) {
           case SDLK_KP_PLUS:
