@@ -75,7 +75,8 @@ void drawBackground(SDL_Renderer *renderer) {
   SDL_RenderClear(renderer);
 }
 
-int parseInput(const char *filename,
+int parseInput(
+    const char *filename,
     std::vector<NormalizedElement> &elements_to_parse) {
   pugi::xml_document file;
   if (!file.load_file(filename)) {
@@ -120,7 +121,8 @@ int parseInput(const char *filename,
   return 0;
 }
 
-std::ostream &operator<<(std::ostream &out,
+std::ostream &operator<<(
+    std::ostream &out,
     const NormalizedElement &element_to_print) {
   out << element_to_print.id << ' ' <<
   element_to_print.point.n_x << ' ' <<
@@ -142,12 +144,13 @@ void print(const std::vector<NormalizedElement> &elements_to_print) {
   }
 }
 
-void draw(SDL_Window *window,
+void draw(
+    SDL_Window *window,
     const std::vector<NormalizedElement> &elements_to_draw,
     const int screen_w,
     const int screen_h) {
-  SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
-                                              SDL_RENDERER_ACCELERATED);
+  SDL_Renderer *renderer = 
+      SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
   drawBackground(renderer);
 
@@ -164,11 +167,12 @@ void draw(SDL_Window *window,
     //Placing connection Lines on the screen
     for (const NormalizedConnection &n_connection: n_elem.connections) {
       for (int i = 1; i < n_connection.vertices.size(); i++) {
-        SDL_RenderDrawLineF(renderer,
-                            normalizedToScreenX(n_connection.vertices[i - 1].n_x, screen_w),
-                            normalizedToScreenY(n_connection.vertices[i - 1].n_y, screen_h),
-                            normalizedToScreenX(n_connection.vertices[i].n_x, screen_w),
-                            normalizedToScreenY(n_connection.vertices[i].n_y, screen_h));
+        SDL_RenderDrawLineF(
+            renderer,
+            normalizedToScreenX(n_connection.vertices[i - 1].n_x, screen_w),
+            normalizedToScreenY(n_connection.vertices[i - 1].n_y, screen_h),
+            normalizedToScreenX(n_connection.vertices[i].n_x, screen_w),
+            normalizedToScreenY(n_connection.vertices[i].n_y, screen_h));
       }
     }
   }
@@ -206,9 +210,8 @@ int main(int argc, char *argv[]) {
   const int screen_w = display.w;
   const int screen_h = display.h;
 
-  SDL_Window *window = SDL_CreateWindow("test-viz", 0, 0,
-                                        screen_w, screen_h,
-                                        SDL_WINDOW_SHOWN);
+  SDL_Window *window = 
+  SDL_CreateWindow("test-viz", 0, 0, screen_w, screen_h, SDL_WINDOW_SHOWN);
   draw(window, normalized_elements, screen_w, screen_h);
 
   //Event loop
