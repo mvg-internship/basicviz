@@ -124,14 +124,16 @@ int parseInput(
 std::ostream &operator<<(
     std::ostream &out,
     const NormalizedElement &element_to_print) {
-  out << element_to_print.id << ' ' <<
-  element_to_print.point.n_x << ' ' <<
+  out << "Element id: " << element_to_print.id << " x: " <<
+  element_to_print.point.n_x << " y: " <<
   element_to_print.point.n_y << std::endl;
   for (const NormalizedConnection &connection: element_to_print.connections) {
-    out << "  " << connection.id;
-    for (const NormalizedPoint &vertex: connection.vertices) {
-      out << ' ' << vertex.n_x << ' '
-      << vertex.n_y;
+    out << "  Connection id: " << connection.id;
+    for (size_t i = 0; i < connection.vertices.size(); i++) {
+      out << " x" << i << ": " << 
+      connection.vertices[i].n_x <<
+      " y" << i << ": " <<
+      connection.vertices[i].n_y;
     }
     std::cout << std::endl;
   }
@@ -224,7 +226,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  
+
   //Shutdown
   SDL_DestroyWindow(window);
   SDL_Quit();
