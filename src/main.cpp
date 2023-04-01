@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-
+  
   //Shutdown
   SDL_DestroyWindow(window);
   SDL_Quit();
