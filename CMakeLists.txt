@@ -18,3 +18,4 @@ target_include_directories(Lorina
 
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 add_subdirectory(src)
+add_subdirectory(test)
