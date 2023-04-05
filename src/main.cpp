@@ -39,6 +39,9 @@ const float zoom_in_scaling_factor = 1.1f;
 const float zoom_out_scaling_factor = 0.9f;
 const float mouse_wheel_scaling_factor = 0.1f;
 
+const char* print_compact_mode = "--compact";
+const char* print_default_mode = "--default";
+
 struct NormalizedPoint {
   float n_x;
   float n_y;
@@ -209,9 +212,23 @@ std::ostream& operator<<(
   return out;
 }
 
-void print(const std::vector<NormalizedElement>& elements_to_print) {
-  for (const NormalizedElement& element : elements_to_print) {
-    std::cout << element;
+void print(
+    const char* print_mode,
+    const std::vector<NormalizedElement>& elements_to_print) {
+  if (std::string(print_mode) == std::string(print_compact_mode)) {
+    size_t connections_count = 0;
+    for (const NormalizedElement& element : elements_to_print) {
+      connections_count += element.connections.size();
+    }
+    std::cout << "Number of elements: "
+        << elements_to_print.size()
+        << "\nNumber of connections: "
+        << connections_count
+        << std::endl;
+  } else if (std::string(print_mode) == std::string(print_default_mode)) {
+    for (const NormalizedElement& element : elements_to_print) {
+      std::cout << element;
+    }
   }
 }
 
@@ -290,7 +307,11 @@ int main(int argc, char* argv[]) {
     return code;
   }
 
-  // print(normalized_elements);
+  const char * print_mode = print_default_mode;
+  if (argc >= 3) {
+    print_mode = argv[2];
+  }
+  print(print_mode, normalized_elements);
 
   // Prepare draw data and draw
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
