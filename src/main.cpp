@@ -21,136 +21,137 @@ enum StatusCode {
   SDL_INIT_FAILURE
 };
 
-const char* status_messages[] = {
+const char *statusMessages[] = {
     "Success\n",
     "Filename was not provided\n",
     "Parser failure\n",
-    "SDL could not be initialized\n" };
+    "SDL could not be initialized\n"
+};
 
-const char* const parser_e_id = "e_id";
-const char* const parser_c_id = "c_id";
-const char* const parser_x = "x";
-const char* const parser_y = "y";
-const char* const parser_height = "height";
-const char* const parser_width = "width";
-const char* const parser_end_elem = "end_element";
+const char *const parserElementId = "e_id";
+const char *const parserConnetionId = "c_id";
+const char *const parserX = "x";
+const char *const parserY = "y";
+const char *const parserHeight = "height";
+const char *const parserWidth = "width";
+const char *const parserEndElement = "end_element";
 
-const float zoom_in_scaling_factor = 1.1f;
-const float zoom_out_scaling_factor = 0.9f;
-const float mouse_wheel_scaling_factor = 0.1f;
+const float zoomInScalingFactor = 1.1f;
+const float zoomOutScalingFactor = 0.9f;
+const float mouseWheelScalingFactor = 0.1f;
 
-const char* print_compact_mode = "--compact";
-const char* print_default_mode = "--default";
+const std::string printCompactMode = "--compact";
+const std::string printDefaultMode = "--default";
 
 struct NormalizedPoint {
-  float n_x;
-  float n_y;
+  float nX;
+  float nY;
 
-  NormalizedPoint(): n_x(0), n_y(0) {}
+  NormalizedPoint(): nX(0), nY(0) {}
 };
 
 struct NormalizedConnection {
   unsigned int id;
-  unsigned int start_element_id;
-  unsigned int end_element_id;
-  std::vector<NormalizedPoint> n_vertices;
-  std::vector<SDL_FPoint> scr_vertices;
+  unsigned int startElementId;
+  unsigned int endElementId;
+  std::vector<NormalizedPoint> nVertices;
+  std::vector<SDL_FPoint> scrVertices;
 
-  NormalizedConnection(): id(-1), start_element_id(-1), end_element_id(-1) {}
-  void normalizedToScreen(const int screen_w, const int screen_h);
-  void scale(const float scaling_factor, const int mouse_x, const int mouse_y);
+  NormalizedConnection(): id(-1), startElementId(-1), endElementId(-1) {}
+  void normalizedToScreen(const int screenW, const int screenH);
+  void scale(const float scalingFactor, const int mouseX, const int mouseY);
   void move(const int dx, const int dy);
 };
 
 struct NormalizedElement {
   unsigned int id;
-  NormalizedPoint n_point;
-  float n_w, n_h;
-  SDL_FRect scr_rect;
+  NormalizedPoint nPoint;
+  float nW, nH;
+  SDL_FRect scrRect;
   std::vector<NormalizedConnection> connections;
 
-  NormalizedElement(): id(-1), n_w(0), n_h(0) {}
-  void normalizedToScreen(const int screen_w, const int screen_h);
-  void scale(const float scaling_factor, const int mouse_x, const int mouse_y);
+  NormalizedElement(): id(-1), nW(0), nH(0) {}
+  void normalizedToScreen(const int screenW, const int screenH);
+  void scale(const float scalingFactor, const int mouseX, const int mouseY);
   void move(const int dx, const int dy);
 };
 
-float normalizedToScreenX(const float n_x, const int screen_w) {
-  return n_x * screen_w;
+float normalizedToScreenX(const float nX, const int screenW) {
+  return nX * screenW;
 }
 
-float normalizedToScreenY(const float n_y, const int screen_h) {
-  return n_y * screen_h;
+float normalizedToScreenY(const float nY, const int screenH) {
+  return nY * screenH;
 }
 
 void NormalizedElement::move(const int dx, const int dy) {
-  scr_rect.x += dx;
-  scr_rect.y += dy;
+  scrRect.x += dx;
+  scrRect.y += dy;
 
-  for (NormalizedConnection& connection_to_move : connections) {
-    connection_to_move.move(dx, dy);
+  for (NormalizedConnection &connectionToMove : connections) {
+    connectionToMove.move(dx, dy);
   }
 }
 
 void NormalizedConnection::move(const int dx, const int dy) {
-  for (SDL_FPoint& vertex_to_move : scr_vertices) {
-    vertex_to_move.x += dx;
-    vertex_to_move.y += dy;
+  for (SDL_FPoint &vertexToMove : scrVertices) {
+    vertexToMove.x += dx;
+    vertexToMove.y += dy;
   }
 }
 
 void NormalizedElement::scale(
-    const float scaling_factor,
-    const int mouse_x, 
-    const int mouse_y) {
-  scr_rect.x = mouse_x + (scr_rect.x - mouse_x) * scaling_factor;
-  scr_rect.y = mouse_y + (scr_rect.y - mouse_y) * scaling_factor;
-  scr_rect.w *= scaling_factor;
-  scr_rect.h *= scaling_factor;
+    const float scalingFactor,
+    const int mouseX,
+    const int mouseY) {
+  scrRect.x = mouseX + (scrRect.x - mouseX) * scalingFactor;
+  scrRect.y = mouseY + (scrRect.y - mouseY) * scalingFactor;
+  scrRect.w *= scalingFactor;
+  scrRect.h *= scalingFactor;
 
-  for (NormalizedConnection& connection_to_scale : connections) {
-    connection_to_scale.scale(scaling_factor, mouse_x, mouse_y);
+  for (NormalizedConnection &connectionToScale : connections) {
+    connectionToScale.scale(scalingFactor, mouseX, mouseY);
   }
 }
 
 void NormalizedConnection::scale(
-    const float scaling_factor,
-    const int mouse_x, 
-    const int mouse_y) {
-  for (SDL_FPoint& vertex_to_scale : scr_vertices) {
-    vertex_to_scale.x = mouse_x + (vertex_to_scale.x - mouse_x) * scaling_factor;
-    vertex_to_scale.y = mouse_y + (vertex_to_scale.y - mouse_y) * scaling_factor;
+    const float scalingFactor,
+    const int mouseX,
+    const int mouseY) {
+  for (SDL_FPoint &vertexToScale : scrVertices) {
+    vertexToScale.x = mouseX + (vertexToScale.x - mouseX) * scalingFactor;
+    vertexToScale.y = mouseY + (vertexToScale.y - mouseY) * scalingFactor;
   }
 }
 
 void NormalizedConnection::normalizedToScreen(
-    const int screen_w,
-    const int screen_h) {
-  for (const NormalizedPoint& n_vertex : n_vertices) {
+    const int screenW,
+    const int screenH) {
+  for (const NormalizedPoint &nVertex : nVertices) {
     SDL_FPoint vertex;
-    vertex.x = normalizedToScreenX(n_vertex.n_x, screen_w);
-    vertex.y = normalizedToScreenX(n_vertex.n_y, screen_h);
-    scr_vertices.push_back(vertex);
+    vertex.x = normalizedToScreenX(nVertex.nX, screenW);
+    vertex.y = normalizedToScreenX(nVertex.nY, screenH);
+    scrVertices.push_back(vertex);
   }
 }
 
 void NormalizedElement::normalizedToScreen(
-    const int screen_w,
-    const int screen_h) {
-  scr_rect.x = normalizedToScreenX(n_point.n_x, screen_w);
-  scr_rect.y = normalizedToScreenY(n_point.n_y, screen_h);
-  scr_rect.w = normalizedToScreenX(n_w, screen_w);
-  scr_rect.h = normalizedToScreenY(n_h, screen_h);
+    const int screenW,
+    const int screenH) {
+  scrRect.x = normalizedToScreenX(nPoint.nX, screenW);
+  scrRect.y = normalizedToScreenY(nPoint.nY, screenH);
+  scrRect.w = normalizedToScreenX(nW, screenW);
+  scrRect.h = normalizedToScreenY(nH, screenH);
 }
 
-void drawBackground(SDL_Renderer* renderer) {
+void drawBackground(SDL_Renderer *renderer) {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(renderer);
 }
 
 int parseInput(
-    const char* filename,
-    std::vector<NormalizedElement>& elements_to_parse) {
+    const char *filename,
+    std::vector<NormalizedElement> &elementsToParse) {
   pugi::xml_document file;
   if (!file.load_file(filename)) {
     return PARSER_FAILURE;
@@ -160,52 +161,52 @@ int parseInput(
 
   // Parsing elements from given file
   for (pugi::xml_node element = elements.first_child();
-    element;
-    element = element.next_sibling()) {
-    NormalizedElement parsed_element;
-    parsed_element.id = atoi(element.attribute(parser_e_id).value());
-    parsed_element.n_point.n_x = std::stof(element.attribute(parser_x).value());
-    parsed_element.n_point.n_y = std::stof(element.attribute(parser_y).value());
-    parsed_element.n_h = std::stof(element.attribute(parser_height).value());
-    parsed_element.n_w = std::stof(element.attribute(parser_width).value());
+      element;
+      element = element.next_sibling()) {
+    NormalizedElement parsedElement;
+    parsedElement.id = atoi(element.attribute(parserElementId).value());
+    parsedElement.nPoint.nX = std::stof(element.attribute(parserX).value());
+    parsedElement.nPoint.nY = std::stof(element.attribute(parserY).value());
+    parsedElement.nH = std::stof(element.attribute(parserHeight).value());
+    parsedElement.nW = std::stof(element.attribute(parserWidth).value());
 
     // Parsing connections for given element
     for (pugi::xml_node connection = element.first_child();
-      connection;
-      connection = connection.next_sibling()) {
-      NormalizedConnection parsed_connection;
-      parsed_connection.id = atoi(connection.attribute(parser_c_id).value());
-      parsed_connection.start_element_id = parsed_element.id;
-      parsed_connection.end_element_id = atoi(connection.attribute(parser_end_elem).value());
+        connection;
+        connection = connection.next_sibling()) {
+      NormalizedConnection parsedConnection;
+      parsedConnection.id = atoi(connection.attribute(parserConnetionId).value());
+      parsedConnection.startElementId = parsedElement.id;
+      parsedConnection.endElementId = atoi(connection.attribute(parserEndElement).value());
 
-      // Parsing n_vertices for given connection
+      // Parsing nVertices for given connection
       for (pugi::xml_node vertex = connection.first_child();
-        vertex;
-        vertex = vertex.next_sibling()) {
-        NormalizedPoint parsed_vertex;
-        parsed_vertex.n_x = std::stof(vertex.attribute(parser_x).value());
-        parsed_vertex.n_y = std::stof(vertex.attribute(parser_y).value());
-        parsed_connection.n_vertices.push_back(parsed_vertex);
+          vertex;
+          vertex = vertex.next_sibling()) {
+        NormalizedPoint parsedVertex;
+        parsedVertex.nX = std::stof(vertex.attribute(parserX).value());
+        parsedVertex.nY = std::stof(vertex.attribute(parserY).value());
+        parsedConnection.nVertices.push_back(parsedVertex);
       }
-      parsed_element.connections.push_back(parsed_connection);
+      parsedElement.connections.push_back(parsedConnection);
     }
-    elements_to_parse.push_back(parsed_element);
+    elementsToParse.push_back(parsedElement);
   }
   return 0;
 }
 
-std::ostream& operator<<(
-    std::ostream& out,
-    const NormalizedElement& element_to_print) {
-  out << "Element id: " << element_to_print.id
-    << " x: " << element_to_print.n_point.n_x
-    << " y: " << element_to_print.n_point.n_y
-    << std::endl;
-  for (const NormalizedConnection& connection : element_to_print.connections) {
+std::ostream &operator<<(
+    std::ostream &out,
+    const NormalizedElement &elementToPrint) {
+  out << "Element id: " << elementToPrint.id
+      << " x: " << elementToPrint.nPoint.nX
+      << " y: " << elementToPrint.nPoint.nY
+      << std::endl;
+  for (const NormalizedConnection &connection : elementToPrint.connections) {
     out << "  Connection id: " << connection.id;
-    for (size_t i = 0; i < connection.n_vertices.size(); i++) {
-      out << " x" << i << ": " << connection.n_vertices[i].n_x
-        << " y" << i << ": " << connection.n_vertices[i].n_y;
+    for (size_t i = 0; i < connection.nVertices.size(); i++) {
+      out << " x" << i << ": " << connection.nVertices[i].nX
+          << ": " << connection.nVertices[i].nY;
     }
     std::cout << std::endl;
   }
@@ -213,55 +214,56 @@ std::ostream& operator<<(
 }
 
 void print(
-    const char* print_mode,
-    const std::vector<NormalizedElement>& elements_to_print) {
-  if (std::string(print_mode) == std::string(print_compact_mode)) {
-    size_t connections_count = 0;
-    for (const NormalizedElement& element : elements_to_print) {
-      connections_count += element.connections.size();
+    const std::string &printMode,
+    const std::vector<NormalizedElement> &elementsToPrint) {
+  if (printMode == printCompactMode) {
+    size_t connectionsCount = 0;
+    for (const NormalizedElement &element : elementsToPrint) {
+      connectionsCount += element.connections.size();
     }
     std::cout << "Number of elements: "
-        << elements_to_print.size()
+        << elementsToPrint.size()
         << "\nNumber of connections: "
-        << connections_count
+        << connectionsCount
         << std::endl;
-  } else if (std::string(print_mode) == std::string(print_default_mode)) {
-    for (const NormalizedElement& element : elements_to_print) {
+  }
+  else if (printMode == printDefaultMode) {
+    for (const NormalizedElement &element : elementsToPrint) {
       std::cout << element;
     }
   }
 }
 
 void convertNormToScreen(
-    std::vector<NormalizedElement>& elements_to_convert,
-    const int screen_w,
-    const int screen_h) {
+    std::vector<NormalizedElement> &elementsToConvert,
+    const int screenW,
+    const int screenH) {
   // Converting normalized coordinates to screen
-  for (NormalizedElement& n_elem : elements_to_convert) {
-    n_elem.normalizedToScreen(screen_w, screen_h);
+  for (NormalizedElement &nElem : elementsToConvert) {
+    nElem.normalizedToScreen(screenW, screenH);
 
-    for (NormalizedConnection& n_connection : n_elem.connections) {
-      n_connection.normalizedToScreen(screen_w, screen_h);
+    for (NormalizedConnection &nConnection : nElem.connections) {
+      nConnection.normalizedToScreen(screenW, screenH);
     }
   }
 }
 
 void drawFrame(
-    SDL_Renderer* renderer, 
-    const std::vector<NormalizedElement>& elements_to_draw) {
+    SDL_Renderer *renderer,
+    const std::vector<NormalizedElement> &elementsToDraw) {
   drawBackground(renderer);
 
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 
-  for (const NormalizedElement& element_to_draw : elements_to_draw) {
-    SDL_RenderDrawRectF(renderer, &element_to_draw.scr_rect);
-    for (const NormalizedConnection& connection_to_draw : element_to_draw.connections) {
-      for (size_t i = 1; i < connection_to_draw.scr_vertices.size(); i++) {
+  for (const NormalizedElement &elementToDraw : elementsToDraw) {
+    SDL_RenderDrawRectF(renderer, &elementToDraw.scrRect);
+    for (const NormalizedConnection &connectionToDraw : elementToDraw.connections) {
+      for (size_t i = 1; i < connectionToDraw.scrVertices.size(); i++) {
         SDL_RenderDrawLineF(renderer,
-          connection_to_draw.scr_vertices[i - 1].x,
-          connection_to_draw.scr_vertices[i - 1].y,
-          connection_to_draw.scr_vertices[i].x,
-          connection_to_draw.scr_vertices[i].y);
+          connectionToDraw.scrVertices[i - 1].x,
+          connectionToDraw.scrVertices[i - 1].y,
+          connectionToDraw.scrVertices[i].x,
+          connectionToDraw.scrVertices[i].y);
       }
     }
   }
@@ -269,117 +271,120 @@ void drawFrame(
 }
 
 void scaleViewport(
-    const float scaling_factor, 
-    std::vector<NormalizedElement>& elements_to_scale) {
-  int mouse_x, mouse_y;
-  SDL_GetMouseState(&mouse_x, &mouse_y);
+    const float scalingFactor,
+    std::vector<NormalizedElement> &elementsToScale) {
+  int mouseX, mouseY;
+  SDL_GetMouseState(&mouseX, &mouseY);
 
-  for (NormalizedElement& element_to_scale : elements_to_scale) {
-    element_to_scale.scale(scaling_factor, mouse_x, mouse_y);
+  for (NormalizedElement &elementToScale : elementsToScale) {
+    elementToScale.scale(scalingFactor, mouseX, mouseY);
   }
 }
 
 void moveViewport(
-    const int dx, 
-    const int dy, 
-    std::vector<NormalizedElement>& elements_to_scale) {
-  for (NormalizedElement& element_to_scale : elements_to_scale) {
-    element_to_scale.move(dx, dy);
+    const int dx,
+    const int dy,
+    std::vector<NormalizedElement> &elementsToScale) {
+  for (NormalizedElement &elementToScale : elementsToScale) {
+    elementToScale.move(dx, dy);
   }
 }
 
-const float scaleMouseWheel(const Sint32 mouse_wheel_y) {
-  return 1 + mouse_wheel_y * mouse_wheel_scaling_factor;
+const float scaleMouseWheel(const Sint32 mouseWheelY) {
+  return 1 + mouseWheelY * mouseWheelScalingFactor;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   // Parse text file
   if (argc < 2) {
-    std::cerr << status_messages[FILENAME_NOT_PROVIDED];
+    std::cerr << statusMessages[FILENAME_NOT_PROVIDED];
     return FILENAME_NOT_PROVIDED;
   }
 
-  std::vector<NormalizedElement> normalized_elements;
+  std::vector<NormalizedElement> normalizedElements;
 
-  int code = parseInput(argv[1], normalized_elements);
+  int code = parseInput(argv[1], normalizedElements);
   if (code) {
-    std::cerr << status_messages[code];
+    std::cerr << statusMessages[code];
     return code;
   }
 
-  const char * print_mode = print_default_mode;
+  std::string printMode = printDefaultMode;
   if (argc >= 3) {
-    print_mode = argv[2];
+    printMode = argv[2];
   }
-  print(print_mode, normalized_elements);
+  print(printMode, normalizedElements);
 
   // Prepare draw data and draw
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    std::cerr << status_messages[SDL_INIT_FAILURE];
+    std::cerr << statusMessages[SDL_INIT_FAILURE];
     return SDL_INIT_FAILURE;
   }
 
-  std::cout << status_messages[SUCCESS];
+  std::cout << statusMessages[SUCCESS];
 
   // Get screen dimensions
   SDL_DisplayMode display;
   SDL_GetCurrentDisplayMode(0, &display);
-  const int screen_w = display.w;
-  const int screen_h = display.h;
+  const int screenW = display.w;
+  const int screenH = display.h;
 
-  SDL_Window* window = SDL_CreateWindow("test-viz", 0, 0,
-    screen_w, screen_h,
-    SDL_WINDOW_SHOWN);
-  SDL_Renderer* renderer = SDL_CreateRenderer(window, -1,
-    SDL_RENDERER_ACCELERATED);
+  SDL_Window *window = 
+      SDL_CreateWindow("test-viz", 0, 0, screenW, screenH, SDL_WINDOW_SHOWN);
+  SDL_Renderer *renderer = 
+      SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-  convertNormToScreen(normalized_elements, screen_w, screen_h);
-  drawFrame(renderer, normalized_elements);
+  convertNormToScreen(normalizedElements, screenW, screenH);
+  drawFrame(renderer, normalizedElements);
 
   // Event loop
-  bool is_running = true;
-  bool is_dragging = false;
-  int mouse_x1 = 0;
-  int mouse_y1 = 0;
-  int mouse_x2 = 0;
-  int mouse_y2 = 0;
-  while (is_running) {
+  bool isRunning = true;
+  bool isDragging = false;
+  int mouseX1 = 0;
+  int mouseY1 = 0;
+  int mouseX2 = 0;
+  int mouseY2 = 0;
+  while (isRunning) {
     SDL_Event event;
     // User input handler
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
-        is_running = false;
-      } else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-        is_dragging = true;
-        SDL_GetMouseState(&mouse_x1, &mouse_y1);
-      } else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
-        is_dragging = false;
-        mouse_x1 = 0;
-        mouse_y1 = 0;
-        mouse_x2 = 0;
-        mouse_y2 = 0;
-      } else if (is_dragging && SDL_GetMouseState(&mouse_x2, &mouse_y2)) {
-        moveViewport(mouse_x2 - mouse_x1, mouse_y2 - mouse_y1, normalized_elements);
-        drawFrame(renderer, normalized_elements);
-        SDL_GetMouseState(&mouse_x1, &mouse_y1);
-      } else if (event.type == SDL_KEYDOWN) {
+        isRunning = false;
+      }
+      else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        isDragging = true;
+        SDL_GetMouseState(&mouseX1, &mouseY1);
+      }
+      else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
+        isDragging = false;
+        mouseX1 = 0;
+        mouseY1 = 0;
+        mouseX2 = 0;
+        mouseY2 = 0;
+      }
+      else if (isDragging && SDL_GetMouseState(&mouseX2, &mouseY2)) {
+        moveViewport(mouseX2 - mouseX1, mouseY2 - mouseY1, normalizedElements);
+        drawFrame(renderer, normalizedElements);
+        SDL_GetMouseState(&mouseX1, &mouseY1);
+      }
+      else if (event.type == SDL_KEYDOWN) {
         // Keyboard input handler
         switch (event.key.keysym.sym) {
         case SDLK_KP_PLUS:
-          scaleViewport(zoom_in_scaling_factor, normalized_elements);
-          drawFrame(renderer, normalized_elements);
+          scaleViewport(zoomInScalingFactor, normalizedElements);
           break;
         case SDLK_KP_MINUS:
-          scaleViewport(zoom_out_scaling_factor, normalized_elements);
-          drawFrame(renderer, normalized_elements);
+          scaleViewport(zoomOutScalingFactor, normalizedElements);
           break;
         case SDLK_ESCAPE:
-          is_running = false;
+          isRunning = false;
           break;
         }
-      } else if (event.type == SDL_MOUSEWHEEL) {
-        scaleViewport(scaleMouseWheel(event.wheel.y), normalized_elements);
-        drawFrame(renderer, normalized_elements);
+        drawFrame(renderer, normalizedElements);
+      }
+      else if (event.type == SDL_MOUSEWHEEL) {
+        scaleViewport(scaleMouseWheel(event.wheel.y), normalizedElements);
+        drawFrame(renderer, normalizedElements);
       }
     }
   }
