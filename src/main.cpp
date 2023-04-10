@@ -226,8 +226,7 @@ void print(
         << "\nNumber of connections: "
         << connectionsCount
         << std::endl;
-  }
-  else if (printMode == printDefaultMode) {
+  } else if (printMode == printDefaultMode) {
     for (const NormalizedElement &element : elementsToPrint) {
       std::cout << element;
     }
@@ -350,24 +349,20 @@ int main(int argc, char *argv[]) {
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
         isRunning = false;
-      }
-      else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+      } else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         isDragging = true;
         SDL_GetMouseState(&mouseX1, &mouseY1);
-      }
-      else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
+      } else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
         isDragging = false;
         mouseX1 = 0;
         mouseY1 = 0;
         mouseX2 = 0;
         mouseY2 = 0;
-      }
-      else if (isDragging && SDL_GetMouseState(&mouseX2, &mouseY2)) {
+      } else if (isDragging && SDL_GetMouseState(&mouseX2, &mouseY2)) {
         moveViewport(mouseX2 - mouseX1, mouseY2 - mouseY1, normalizedElements);
         drawFrame(renderer, normalizedElements);
         SDL_GetMouseState(&mouseX1, &mouseY1);
-      }
-      else if (event.type == SDL_KEYDOWN) {
+      } else if (event.type == SDL_KEYDOWN) {
         // Keyboard input handler
         switch (event.key.keysym.sym) {
         case SDLK_KP_PLUS:
@@ -381,8 +376,7 @@ int main(int argc, char *argv[]) {
           break;
         }
         drawFrame(renderer, normalizedElements);
-      }
-      else if (event.type == SDL_MOUSEWHEEL) {
+      } else if (event.type == SDL_MOUSEWHEEL) {
         scaleViewport(scaleMouseWheel(event.wheel.y), normalizedElements);
         drawFrame(renderer, normalizedElements);
       }
