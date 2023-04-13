@@ -1,5 +1,7 @@
 #include "graph_visualization.h"
 
+#include <cassert>
+
 void initIdAndSucc(std::vector<std::vector<int>> &input, std::vector<TreeNode> &nodes);
 void predReinit(std::vector<TreeNode> &nodes);
 void degReinit(std::vector<TreeNode> &nodes);
@@ -430,6 +432,14 @@ void printInfo(std::vector<TreeNode> &nodes) {
   }
 }
 
+TreeNode::nodeId Net::addNode() {
+  nodeId id = static_cast<nodeId>(nodes.size());
+  nodes.emplace_back();
+  nodes.back().id = id;
+
+  return id;
+}
+
 const std::vector<TreeNode::nodeId> &Net::getSources() {
   degReinit(nodes);
   for (int i = 0; i < nodes.size(); i++) {
@@ -450,14 +460,24 @@ const std::vector<TreeNode::nodeId> &Net::getSinks() {
   return sinks;
 }
 
-const std::vector<TreeNode::nodeId> &Net::getSuccessors(TreeNode::nodeId id) {
-    return nodes[id].succ;
+const std::vector<TreeNode::nodeId> &
+Net::getSuccessors(TreeNode::nodeId id) const {
+  const TreeNode *node = getNode(id);
+  assert(node);
+  return node->succ;
 }
 
-const std::vector<TreeNode::nodeId> &Net::getPredecessors(TreeNode::nodeId id) {
-    return nodes[id].pred;
+const std::vector<TreeNode::nodeId> &
+Net::getPredecessors(TreeNode::nodeId id) const {
+  const TreeNode *node = getNode(id);
+  assert(node);
+  return node->pred;
 }
 
-const TreeNode &Net::getNode(TreeNode::nodeId id) {
-    return nodes[id];
+const TreeNode *
+Net::getNode(TreeNode::nodeId id) const {
+    if (id >= 0 && id < nodes.size()) {
+      return nodes.data() + id;
+    }
+    return nullptr;
 }

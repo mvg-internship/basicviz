@@ -37,10 +37,17 @@ public:
   const std::vector<nodeId> &getSources();
   const std::vector<nodeId> &getSinks();
 
-  const std::vector<nodeId> &getSuccessors(nodeId id);
-  const std::vector<nodeId> &getPredecessors(nodeId id);
+  const std::vector<nodeId> &getSuccessors(nodeId id) const;
+  const std::vector<nodeId> &getPredecessors(nodeId id) const;
 
-  const TreeNode &getNode(nodeId id);
+  nodeId addNode();
+
+  TreeNode *getNode(nodeId id) {
+    const Net &net = *this;
+    return const_cast<TreeNode *>(net.getNode(id));
+  }
+
+  const TreeNode *getNode(nodeId id) const;
 };
 
 #endif // GRAPH_VISUALIZATION_H_
