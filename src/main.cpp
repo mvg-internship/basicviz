@@ -8,17 +8,22 @@
 
 #define SDL_MAIN_HANDLED
 #include "pugixml.hpp"
-#include <SDL.h>
 
 #include <vector>
 #include <iostream>
 #include <string>
 
+#include <fstream>
+#include "layout.h"
+#include "netfmt_bench.h"
+#include "main.h"
+
 enum StatusCode {
   SUCCESS = 0,
   FILENAME_NOT_PROVIDED,
   PARSER_FAILURE,
-  SDL_INIT_FAILURE
+  SDL_INIT_FAILURE,
+  BENCH_READER_ERROR
 };
 
 const char *statusMessages[] = {
@@ -42,39 +47,6 @@ const float mouseWheelScalingFactor = 0.1f;
 
 const std::string printCompactMode = "--compact";
 const std::string printDefaultMode = "--default";
-
-struct NormalizedPoint {
-  float nX;
-  float nY;
-
-  NormalizedPoint(): nX(0), nY(0) {}
-};
-
-struct NormalizedConnection {
-  unsigned int id;
-  unsigned int startElementId;
-  unsigned int endElementId;
-  std::vector<NormalizedPoint> nVertices;
-  std::vector<SDL_FPoint> scrVertices;
-
-  NormalizedConnection(): id(-1), startElementId(-1), endElementId(-1) {}
-  void normalizedToScreen(const int screenW, const int screenH);
-  void scale(const float scalingFactor, const int mouseX, const int mouseY);
-  void move(const int dx, const int dy);
-};
-
-struct NormalizedElement {
-  unsigned int id;
-  NormalizedPoint nPoint;
-  float nW, nH;
-  SDL_FRect scrRect;
-  std::vector<NormalizedConnection> connections;
-
-  NormalizedElement(): id(-1), nW(0), nH(0) {}
-  void normalizedToScreen(const int screenW, const int screenH);
-  void scale(const float scalingFactor, const int mouseX, const int mouseY);
-  void move(const int dx, const int dy);
-};
 
 float normalizedToScreenX(const float nX, const int screenW) {
   return nX * screenW;
@@ -299,21 +271,23 @@ int main(int argc, char *argv[]) {
     std::cerr << statusMessages[FILENAME_NOT_PROVIDED];
     return FILENAME_NOT_PROVIDED;
   }
-
-  std::vector<NormalizedElement> normalizedElements;
-
-  int code = parseInput(argv[1], normalizedElements);
-  if (code) {
-    std::cerr << statusMessages[code];
-    return code;
-  }
-
+    
   std::string printMode = printDefaultMode;
   if (argc >= 3) {
     printMode = argv[2];
   }
-  print(printMode, normalizedElements);
+    
+  Net net = {};
+  std::ifstream ifs(argv[1]);
+  if (!readNetFromBench(ifs, net)) {
+    return BENCH_READER_ERROR;
+  }
 
+  net.transformationGraph();
+
+  std::vector<NormalizedElement> normalizedElements = {};
+  net.netTreeNodesToNormalizedElements(normalizedElements);
+    
   // Prepare draw data and draw
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     std::cerr << statusMessages[SDL_INIT_FAILURE];
