@@ -27,6 +27,8 @@ private:
   std::vector<TreeNode> nodes;
   std::vector<TreeNode::nodeId> sources = {};
   std::vector<TreeNode::nodeId> sinks = {};
+  bool sourcesCalculated = false;
+  bool sinksCalculated = false;
 
 public:
   const std::vector<nodeId> &getSources();
