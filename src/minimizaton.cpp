@@ -58,23 +58,32 @@ int get_port_index(TreeNode::nodeId id, TreeNode node, bool forward_layer_sweep)
         for(int i=0;i<node.succ.size();++i)
             if(node.succ[i]==id) return i;
 
-            else
-                for(int i=0;i<node.pred.size();++i)
-                    if(node.pred[i]==id) return i;
+    else
+        for(int i=0;i<node.pred.size();++i)
+            if(node.pred[i]==id) return i;
 
 }
 
-int cross_counting(Net &net, const std::vector<TreeNode::nodeId> &free_layout, const std::vector<TreeNode::nodeId> &fixed_layout){
+int cross_counting(Net &net, const std::vector<TreeNode::nodeId> &free_layout){
     std::vector<std::vector<int> > pi_e;
     for (int i=0;i<free_layout.size();++i){
         TreeNode node = *net.getNode(free_layout[i]);
         for (int j=0;j<node.pred.size();++j){
+            if (net.getNode(node.pred[j])->layer>node.layer) continue;
             std::vector<int> temp (3);
             temp[0] = net.getNode(node.pred[j])->number;
             temp[1] = i;
             pi_e.push_back(temp);
         }
+        for (int j=0;j<node.succ.size();++j){
+            if (net.getNode(node.succ[j])->layer>node.layer) continue;
+            std::vector<int> temp (3);
+            temp[0] = net.getNode(node.succ[j])->number;
+            temp[1] = i;
+            pi_e.push_back(temp);
+        }
     }
+
     for (int i=0;i<pi_e.size()-1;++i)
         for (int j=0;j<pi_e.size()-1;++j)
             if (pi_e[j][0]>pi_e[j+1][0]){
@@ -147,7 +156,6 @@ void layer_sweep_algorithm(Net &net, std::vector<TreeNode> &nodes){
     std::vector<std::vector<TreeNode::nodeId> > temp_net_structure(net_structure.size());
     std::copy(net_structure.begin(), net_structure.end(), temp_net_structure.begin());
 
-
     while(true){
         //            forward layer sweeps
         for (int i=1;i<temp_net_structure.size();++i){
@@ -165,7 +173,7 @@ void layer_sweep_algorithm(Net &net, std::vector<TreeNode> &nodes){
         }
         int intersections_after_fls = 0;
         for (int i=1;i<temp_net_structure.size();++i)
-            intersections_after_fls+=cross_counting(net,temp_net_structure[i],temp_net_structure[i-1]);
+            intersections_after_fls+=cross_counting(net,temp_net_structure[i]);
 
         if (net.crossings>intersections_after_fls || net.crossings==-1){
             net.crossings = intersections_after_fls;
@@ -188,7 +196,7 @@ void layer_sweep_algorithm(Net &net, std::vector<TreeNode> &nodes){
         }
         int intersections_after_bls = 0;
         for (int i=1;i<temp_net_structure.size();++i)
-            intersections_after_bls+=cross_counting(net,temp_net_structure[i],temp_net_structure[i-1]);
+            intersections_after_bls+=cross_counting(net,temp_net_structure[i]);
 
         if (net.crossings>intersections_after_bls || net.crossings==-1){
             net.crossings = intersections_after_bls;
