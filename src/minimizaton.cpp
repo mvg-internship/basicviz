@@ -47,8 +47,10 @@ int get_amount_of_layers(std::vector<TreeNode> &nodes){
 std::vector<std::vector<TreeNode::nodeId> > get_net_structure(Net &net, std::vector<TreeNode> &nodes){
     int amount_of_layers = get_amount_of_layers(nodes);
     std::vector<std::vector<TreeNode::nodeId> > net_structure(amount_of_layers+1);
-    for (int i=0;i<nodes.size();++i)
+    for (int i=0;i<nodes.size();++i){
         net_structure.at(nodes[i].layer).push_back(nodes[i].id);
+        nodes[i].number = net_structure.at(nodes[i].layer).size()-1;
+    }
 
     return net_structure;
 }
