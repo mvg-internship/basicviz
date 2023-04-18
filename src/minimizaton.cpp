@@ -208,11 +208,6 @@ void layer_sweep_algorithm(Net &net, std::vector<TreeNode> &nodes){
             break;
     }
 
-    for (int i=0;i<net_structure.size();++i){
-        for (int j=0;j<net_structure[i].size();++j){
-            net.getNode(net_structure[i][j])->number = j;
-        }
-    }
     sort_ports(net, net_structure);
     printf("\ncrosses: %i\n", net.crossings);
 }
