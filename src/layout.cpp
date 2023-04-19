@@ -116,25 +116,23 @@ bool cycleExistsDFS(std::vector<TreeNode> &nodes) {
       }
     }
   }
-  bool exist = algorithmDFS(nodes[0].id, nodes, usedId);
-  if (exist) {
-    return true;
-  }
 
-  return false;
+  return algorithmDFS(nodes[0].id, nodes, usedId);
 }
 
 void removeIncidentArcs(std::vector<TreeNode> &nodes, TreeNode::nodeId id) {
   for (TreeNode &node : nodes) {
-    std::remove(node.succ.begin(), node.succ.end(), id);
-    std::remove(node.pred.begin(), node.pred.end(), id);
+    node.succ.erase(std::remove(node.succ.begin(), node.succ.end(), id),
+                    node.succ.end());
+    node.pred.erase(std::remove(node.pred.begin(), node.pred.end(), id),
+                    node.pred.end());
   }
 }
 
 void transferringNode(int index, std::vector<TreeNode> &from,
-                      std::vector<TreeNode> &to,
+                      std::vector<TreeNode::nodeId> &to,
                       std::vector<TreeNode> &origin) {
-  to.push_back(origin[from[index].id]);
+  to.push_back(from[index].id);
 
   removeIncidentArcs(from, from[index].id);
   from.erase(from.begin() + index);
@@ -147,7 +145,7 @@ void greedyFAS(
   degReinit(nodes);
 
   std::vector<TreeNode> copyNodes = nodes;
-  std::vector<TreeNode> s1 = {}, s2 = {};
+  std::vector<TreeNode::nodeId> s1 = {}, s2 = {};
 
   while (nodes.size() != 0) {
     for (int i = 0; i < nodes.size(); i++) {
@@ -176,14 +174,12 @@ void greedyFAS(
         }
       }
 
-      TreeNode maxNode = {};
       for (int i = 0; i < copyNodes.size(); i++) {
         if (copyNodes[i].id == nodes[posMax].id) {
-          maxNode = copyNodes[i];
+          s1.push_back(copyNodes[i].id);
           break;
         }
       }
-      s1.push_back(maxNode);
 
       removeIncidentArcs(nodes, nodes[posMax].id);
       nodes.erase(nodes.begin() + posMax);
@@ -191,23 +187,27 @@ void greedyFAS(
     }
   }
 
-  std::vector<TreeNode> s = s1;
-  s.insert(s.end(), s2.rbegin(), s2.rend());
+  nodes.clear();
+  for (int i = 0; i < s1.size(); i++) {
+    nodes.push_back(copyNodes[s1[i]]);
+  }
+  for (int i = 0; i < s2.size(); i++) {
+    nodes.push_back(copyNodes[s2[s2.size() - i - 1]]);
+  }
 
-  for (int i = 0; i < s.size(); i++) {
-    for (int j = 0; j < s[i].succ.size(); j++) {
+  for (int i = 0; i < nodes.size(); i++) {
+    for (int j = 0; j < nodes[i].succ.size(); j++) {
       for (int k = 0; k < i; k++) {
-        if (s[i].succ[j] == s[k].id) {
-          auto edge = std::make_pair(s[i].id, s[i].succ[j]);
+        if (nodes[i].succ[j] == nodes[k].id) {
+          auto edge = std::make_pair(nodes[i].id, nodes[i].succ[j]);
           deletedEdges.push_back(edge);
 
-          s[i].succ.erase(s[i].succ.begin() + j);
+          nodes[i].succ.erase(nodes[i].succ.begin() + j);
         }
       }
     }
   }
 
-  nodes = s;
   idHeapSort(nodes);
   degReinit(nodes);
 }
@@ -220,11 +220,12 @@ void algorithmASAP(
   removedNodes.resize(nodes.size(), -1);
 
   int nodesInLayer = 0;
-  for (int i = 0; std::count(removedNodes.begin(), removedNodes.end(), -1);
-       i++) {
+  int removedCount = 0;
+  for (int i = 0; removedCount < nodes.size(); i++) {
     for (int j = 0; j < nodes.size(); j++) {
       if (nodes[j].degM == 0 && removedNodes[j] == -1) {
         removedNodes[j] = 0;
+        removedCount++;
       }
     }
 
@@ -249,39 +250,38 @@ void algorithmASAP(
   }
 }
 
-void addDummyNode(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer,
-                  int layer, int finalId, int order) {
-  TreeNode dummy = {};
-  dummy.isDummy = true;
-  dummy.id = static_cast<int>(nodes.size());
-  dummy.layer = layer;
-  dummy.number = lensLayer[layer];
-  lensLayer[layer]++;
-  if (layer + order == nodes[finalId].layer) {
-    dummy.succ.push_back(finalId);
-  } else {
-    dummy.succ.push_back(dummy.id + 1);
+void addLineSegment(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer,
+                    int idStart, int idEnd, int order) {
+  int idPrevSucc = nodes[idStart].succ[idEnd];
+  nodes[idStart].succ[idEnd] = nodes.size();
+  for (int i = nodes[idStart].layer + order;
+       (i < nodes[idPrevSucc].layer && order == 1) ||
+       (i > nodes[idPrevSucc].layer && order == -1);
+       i = i + order) {
+    TreeNode dummy = {};
+    dummy.isDummy = true;
+    dummy.id = static_cast<int>(nodes.size());
+    dummy.layer = i;
+    dummy.number = lensLayer[i];
+    lensLayer[i]++;
+    if (i + order == nodes[idPrevSucc].layer) {
+      dummy.succ.push_back(idPrevSucc);
+    } else {
+      dummy.succ.push_back(dummy.id + 1);
+    }
+    nodes.push_back(dummy);
   }
-  nodes.push_back(dummy);
 }
 
 bool addDummyNodes(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer) {
   for (int i = 0; i < nodes.size(); i++) {
     for (int j = 0; j < nodes[i].succ.size(); j++) {
       if (nodes[nodes[i].succ[j]].layer - nodes[i].layer > 1) {
-        int idPrevSucc = nodes[i].succ[j];
-        nodes[i].succ[j] = nodes.size();
-        for (int k = nodes[i].layer + 1; k < nodes[idPrevSucc].layer; k++) {
-          addDummyNode(nodes, lensLayer, k, idPrevSucc, 1);
-        }
+        addLineSegment(nodes, lensLayer, i, j, 1);
         return false;
       }
       if (nodes[nodes[i].succ[j]].layer - nodes[i].layer < -1) {
-        int idPrevSucc = nodes[i].succ[j];
-        nodes[i].succ[j] = nodes.size();
-        for (int k = nodes[i].layer - 1; k > nodes[idPrevSucc].layer; k--) {
-          addDummyNode(nodes, lensLayer, k, idPrevSucc, -1);
-        }
+        addLineSegment(nodes, lensLayer, i, j, -1);
         return false;
       }
     }
@@ -374,8 +374,6 @@ const TreeNode *Net::getNode(TreeNode::nodeId id) const {
 }
 
 void Net::transformationGraph() {
-  idHeapSort(nodes);
-
   std::vector<std::pair<TreeNode::nodeId, TreeNode::nodeId>> deletedEdges = {};
   greedyFAS(nodes, deletedEdges);
 

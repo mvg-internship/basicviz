@@ -18,6 +18,7 @@ struct TreeNode {
   bool isDummy = false;
   int x = 0;
   int y = 0;
+  float barycentricValue = 0;
 };
 
 struct Net {
@@ -49,6 +50,8 @@ public:
   void transformationGraph();
   void netTreeNodesToNormalizedElements(
       std::vector<NormalizedElement> &normalizedElements);
+
+  std::vector<std::vector<TreeNode::nodeId>> &getNodesByLayer();
 };
 
 #endif // LAYOUT_H_
