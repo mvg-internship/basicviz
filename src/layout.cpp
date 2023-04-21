@@ -38,12 +38,7 @@ void degReinit(std::vector<TreeNode> &nodes) {
   for (int i = 0; i < nodes.size(); i++) {
     for (int j = 0; j < nodes[i].succ.size(); j++) {
       nodes[i].degP++;
-
-      for (int k = 0; k < nodes.size(); k++) {
-        if (nodes[k].id == nodes[i].succ[j]) {
-          nodes[k].degM++;
-        }
-      }
+      nodes[nodes[i].succ[j]].degM++;
     }
   }
 }
@@ -120,79 +115,90 @@ bool cycleExistsDFS(std::vector<TreeNode> &nodes) {
   return algorithmDFS(nodes[0].id, nodes, usedId);
 }
 
-void removeIncidentArcs(std::vector<TreeNode> &nodes, TreeNode::nodeId id) {
-  for (TreeNode &node : nodes) {
-    node.succ.erase(std::remove(node.succ.begin(), node.succ.end(), id),
-                    node.succ.end());
-    node.pred.erase(std::remove(node.pred.begin(), node.pred.end(), id),
-                    node.pred.end());
+struct EdgeCount {
+  int degP = 0;
+  int degM = 0;
+};
+
+void removeEdgeCount(int i, std::vector<EdgeCount> &edgeCounts,
+                     std::vector<TreeNode> &nodes) {
+  for (int j = 0; j < nodes[i].succ.size(); j++) {
+    edgeCounts[nodes[i].succ[j]].degM--;
   }
-}
+  for (int j = 0; j < nodes[i].pred.size(); j++) {
+    edgeCounts[nodes[i].pred[j]].degP--;
+  }
 
-void transferringNode(int index, std::vector<TreeNode> &from,
-                      std::vector<TreeNode::nodeId> &to,
-                      std::vector<TreeNode> &origin) {
-  to.push_back(from[index].id);
-
-  removeIncidentArcs(from, from[index].id);
-  from.erase(from.begin() + index);
-  degReinit(from);
+  edgeCounts[i].degM = -1;
+  edgeCounts[i].degP = -1;
 }
 
 void greedyFAS(
     std::vector<TreeNode> &nodes,
     std::vector<std::pair<TreeNode::nodeId, TreeNode::nodeId>> &deletedEdges) {
   degReinit(nodes);
-
-  std::vector<TreeNode> copyNodes = nodes;
+  predReinit(nodes);
   std::vector<TreeNode::nodeId> s1 = {}, s2 = {};
-
-  while (nodes.size() != 0) {
-    for (int i = 0; i < nodes.size(); i++) {
-      if (nodes[i].degP == 0) {
-        transferringNode(i, nodes, s2, copyNodes);
+  std::vector<EdgeCount> edgeCounts = {};
+  for (int i = 0; i < nodes.size(); i++) {
+    EdgeCount edgeCount = {};
+    edgeCount.degP = nodes[i].degP;
+    edgeCount.degM = nodes[i].degM;
+    edgeCounts.push_back(edgeCount);
+  }
+  int lenNodes = static_cast<int>(nodes.size());
+  while (lenNodes > 0) {
+    for (int i = 0; i < edgeCounts.size(); i++) {
+      if (edgeCounts[i].degP == 0) {
+        s2.insert(s2.cbegin(), i);
+        removeEdgeCount(i, edgeCounts, nodes);
+        lenNodes--;
 
         i = -1;
       }
     }
 
-    for (int i = 0; i < nodes.size(); i++) {
-      if (nodes[i].degM == 0) {
-        transferringNode(i, nodes, s1, copyNodes);
+    for (int i = 0; i < edgeCounts.size(); i++) {
+      if (edgeCounts[i].degM == 0) {
+        s1.push_back(i);
+        removeEdgeCount(i, edgeCounts, nodes);
+        lenNodes--;
 
         i = -1;
       }
     }
 
-    if (nodes.size() != 0) {
-      int max = nodes[0].degP - nodes[0].degM;
-      int posMax = 0;
-      for (int i = 0; i < nodes.size(); i++) {
-        if (nodes[i].degP - nodes[i].degM > max) {
-          max = nodes[i].degP - nodes[i].degM;
-          posMax = i;
-        }
-      }
-
-      for (int i = 0; i < copyNodes.size(); i++) {
-        if (copyNodes[i].id == nodes[posMax].id) {
-          s1.push_back(copyNodes[i].id);
+    if (lenNodes > 0) {
+      int max;
+      for (int i = 0; i < edgeCounts.size(); i++) {
+        if (edgeCounts[i].degP >= 0 && edgeCounts[i].degM >= 0) {
+          max = i;
           break;
         }
       }
+      for (int i = 0; i < edgeCounts.size(); i++) {
+        if (edgeCounts[i].degP - edgeCounts[i].degM > max &&
+            edgeCounts[i].degP >= 0 && edgeCounts[i].degM >= 0) {
+          max = i;
+        }
+      }
 
-      removeIncidentArcs(nodes, nodes[posMax].id);
-      nodes.erase(nodes.begin() + posMax);
-      degReinit(nodes);
+      s1.push_back(max);
+      removeEdgeCount(max, edgeCounts, nodes);
+
+      lenNodes--;
     }
   }
 
-  nodes.clear();
+  lenNodes = static_cast<int>(nodes.size());
   for (int i = 0; i < s1.size(); i++) {
-    nodes.push_back(copyNodes[s1[i]]);
+    nodes.push_back(nodes[s1[i]]);
   }
   for (int i = 0; i < s2.size(); i++) {
-    nodes.push_back(copyNodes[s2[s2.size() - i - 1]]);
+    nodes.push_back(nodes[s2[i]]);
+  }
+  for (int i = 0; i < lenNodes; i++) {
+    nodes.erase(nodes.cbegin());
   }
 
   for (int i = 0; i < nodes.size(); i++) {
@@ -247,6 +253,15 @@ void algorithmASAP(
 
   for (int i = 0; i < deletedEdges.size(); i++) {
     nodes[deletedEdges[i].first].succ.push_back(deletedEdges[i].second);
+  }
+}
+
+void removeIncidentArcs(std::vector<TreeNode> &nodes, TreeNode::nodeId id) {
+  for (TreeNode &node : nodes) {
+    node.succ.erase(std::remove(node.succ.begin(), node.succ.end(), id),
+                    node.succ.end());
+    node.pred.erase(std::remove(node.pred.begin(), node.pred.end(), id),
+                    node.pred.end());
   }
 }
 
