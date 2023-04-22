@@ -4,153 +4,84 @@
 #include "netfmt_bench.h"
 
 #include <cassert>
+#include <algorithm>
 
-void initIdAndSucc(std::vector<std::vector<int>> &input,
-                   std::vector<TreeNode> &nodes) {
-  for (int i = 0; i < input.size(); i++) {
-    TreeNode node = {};
-    nodes.push_back(node);
-    nodes[i].id = i;
-    for (int j = 0; j < input[i].size(); j++) {
-      nodes[i].succ.push_back(input[i][j]);
-    }
-  }
-}
-
-void predReinit(std::vector<TreeNode> &nodes) {
-  for (int i = 0; i < nodes.size(); i++) {
-    nodes[i].pred.clear();
-  }
-
-  for (int i = 0; i < nodes.size(); i++) {
-    for (int j = 0; j < nodes[i].succ.size(); j++) {
-      nodes[nodes[i].succ[j]].pred.push_back(i);
-    }
-  }
-}
-
-void degReinit(std::vector<TreeNode> &nodes) {
-  for (int i = 0; i < nodes.size(); i++) {
-    nodes[i].degP = 0;
-    nodes[i].degM = 0;
-  }
-
-  for (int i = 0; i < nodes.size(); i++) {
-    for (int j = 0; j < nodes[i].succ.size(); j++) {
-      nodes[i].degP++;
-      nodes[nodes[i].succ[j]].degM++;
-    }
-  }
-}
-
-void heapify(std::vector<TreeNode> &nodes, int n, int i) {
-  int largest = i;
-  int l = 2 * i + 1;
-  int r = 2 * i + 2;
-
-  if (l < n && nodes[l].id > nodes[largest].id) {
-    largest = l;
-  }
-
-  if (r < n && nodes[r].id > nodes[largest].id) {
-    largest = r;
-  }
-
-  if (largest != i) {
-    std::swap(nodes[i], nodes[largest]);
-    heapify(nodes, n, largest);
-  }
-}
-
-void idHeapSort(std::vector<TreeNode> &nodes) {
-  int n = 0;
-  for (int i = 0; i < nodes.size(); i++) {
-    n++;
-  }
-
-  for (int i = n / 2 - 1; i >= 0; i--) {
-    heapify(nodes, n, i);
-  }
-
-  for (int i = n - 1; i >= 0; i--) {
-    std::swap(nodes[0], nodes[i]);
-    heapify(nodes, i, 0);
-  }
-}
-
-bool algorithmDFS(TreeNode::nodeId id, std::vector<TreeNode> &nodes,
-                  std::vector<bool> &usedId) {
-  usedId[id] = true;
-
-  for (int i = 0; i < nodes[id].succ.size(); i++) {
-    if (usedId[nodes[id].succ[i]]) {
+bool algorithmDFS(
+    const TreeNode &node,
+    std::vector<TreeNode> &nodes,
+    std::vector<bool> &usedId) {
+  usedId[node.id] = true;
+  for (TreeNode::nodeId succId: node.succ) {
+    if (usedId[succId]) {
       return true;
-    } else {
-      bool exist = algorithmDFS(nodes[id].succ[i], nodes, usedId);
-      if (exist) {
-        return true;
-      }
+    }
+    bool exist = algorithmDFS(nodes[succId], nodes, usedId);
+    if (exist) {
+      return true;
     }
   }
-
-  usedId[id] = false;
+  usedId[node.id] = false;
   return false;
 }
 
 bool cycleExistsDFS(std::vector<TreeNode> &nodes) {
-  degReinit(nodes);
-
-  std::vector<bool> usedId = {};
-  usedId.resize(nodes.size(), false);
+  if (nodes.size() == 0) {
+      return false;
+  }
+    
+  std::vector<bool> usedId(nodes.size(), false);
 
   for (int i = 0; i < nodes.size(); i++) {
-    if (nodes[i].degM == 0) {
-      bool exist = algorithmDFS(nodes[i].id, nodes, usedId);
+    if (nodes[i].pred.size() == 0) {
+      bool exist = algorithmDFS(nodes[i], nodes, usedId);
       if (exist) {
         return true;
       }
     }
   }
 
-  return algorithmDFS(nodes[0].id, nodes, usedId);
+  return algorithmDFS(nodes[0], nodes, usedId);
 }
 
 struct EdgeCount {
-  int degP = 0;
-  int degM = 0;
+  int degOut = 0;
+  int degIn = 0;
 };
 
 void removeEdgeCount(int i, std::vector<EdgeCount> &edgeCounts,
                      std::vector<TreeNode> &nodes) {
-  for (int j = 0; j < nodes[i].succ.size(); j++) {
-    edgeCounts[nodes[i].succ[j]].degM--;
+  const TreeNode &node = nodes[i];
+  for (TreeNode::nodeId id: node.succ) {
+    edgeCounts[id].degIn--;
   }
-  for (int j = 0; j < nodes[i].pred.size(); j++) {
-    edgeCounts[nodes[i].pred[j]].degP--;
+  for (TreeNode::nodeId id: node.pred) {
+    edgeCounts[id].degOut--;
   }
 
-  edgeCounts[i].degM = -1;
-  edgeCounts[i].degP = -1;
+  edgeCounts[i].degIn = -1;
+  edgeCounts[i].degOut = -1;
+}
+
+bool comparatorId(TreeNode &first, TreeNode &second) {
+    return first.id < second.id;
 }
 
 void greedyFAS(
     std::vector<TreeNode> &nodes,
     std::vector<std::pair<TreeNode::nodeId, TreeNode::nodeId>> &deletedEdges) {
-  degReinit(nodes);
-  predReinit(nodes);
   std::vector<TreeNode::nodeId> s1 = {}, s2 = {};
-  std::vector<EdgeCount> edgeCounts = {};
-  for (int i = 0; i < nodes.size(); i++) {
-    EdgeCount edgeCount = {};
-    edgeCount.degP = nodes[i].degP;
-    edgeCount.degM = nodes[i].degM;
-    edgeCounts.push_back(edgeCount);
-  }
-  int lenNodes = static_cast<int>(nodes.size());
+  
+    std::vector<EdgeCount> edgeCounts;
+    edgeCounts.reserve(nodes.size());
+    for (const TreeNode &node: nodes) {
+        edgeCounts.push_back({ static_cast<int>(node.succ.size()), static_cast<int>(node.pred.size()) });
+    }
+    
+  size_t lenNodes = nodes.size();
   while (lenNodes > 0) {
     for (int i = 0; i < edgeCounts.size(); i++) {
-      if (edgeCounts[i].degP == 0) {
-        s2.insert(s2.cbegin(), i);
+      if (edgeCounts[i].degOut == 0) {
+        s2.push_back(i);
         removeEdgeCount(i, edgeCounts, nodes);
         lenNodes--;
 
@@ -159,7 +90,7 @@ void greedyFAS(
     }
 
     for (int i = 0; i < edgeCounts.size(); i++) {
-      if (edgeCounts[i].degM == 0) {
+      if (edgeCounts[i].degIn == 0) {
         s1.push_back(i);
         removeEdgeCount(i, edgeCounts, nodes);
         lenNodes--;
@@ -171,14 +102,14 @@ void greedyFAS(
     if (lenNodes > 0) {
       int max;
       for (int i = 0; i < edgeCounts.size(); i++) {
-        if (edgeCounts[i].degP >= 0 && edgeCounts[i].degM >= 0) {
+        if (edgeCounts[i].degOut >= 0 && edgeCounts[i].degIn >= 0) {
           max = i;
           break;
         }
       }
       for (int i = 0; i < edgeCounts.size(); i++) {
-        if (edgeCounts[i].degP - edgeCounts[i].degM > max &&
-            edgeCounts[i].degP >= 0 && edgeCounts[i].degM >= 0) {
+        if (edgeCounts[i].degOut - edgeCounts[i].degIn > max &&
+            edgeCounts[i].degOut >= 0 && edgeCounts[i].degIn >= 0) {
           max = i;
         }
       }
@@ -190,19 +121,19 @@ void greedyFAS(
     }
   }
 
-  lenNodes = static_cast<int>(nodes.size());
-  for (int i = 0; i < s1.size(); i++) {
-    nodes.push_back(nodes[s1[i]]);
-  }
-  for (int i = 0; i < s2.size(); i++) {
-    nodes.push_back(nodes[s2[i]]);
-  }
-  for (int i = 0; i < lenNodes; i++) {
-    nodes.erase(nodes.cbegin());
-  }
+    std::vector<TreeNode::nodeId> &ordered = s1;
+    ordered.insert(ordered.end(), s2.rbegin(), s2.rend());
+
+    for (int i = 0; i < ordered.size(); i++) {
+        for (int j = 0; j < nodes.size(); j++) {
+            if (nodes[j].id == ordered[i]) {
+                std::swap(nodes[i], nodes[j]);
+            }
+        }
+    }
 
   for (int i = 0; i < nodes.size(); i++) {
-    for (int j = 0; j < nodes[i].succ.size(); j++) {
+    for (int j = nodes[i].succ.size() - 1; j >= 0; j--) {
       for (int k = 0; k < i; k++) {
         if (nodes[i].succ[j] == nodes[k].id) {
           auto edge = std::make_pair(nodes[i].id, nodes[i].succ[j]);
@@ -214,22 +145,35 @@ void greedyFAS(
     }
   }
 
-  idHeapSort(nodes);
-  degReinit(nodes);
+  std::sort(nodes.begin(), nodes.end(), comparatorId);
+    
+  for (int i = 0; i < nodes.size(); i++) {
+    nodes[i].pred.clear();
+  }
+  for (int i = 0; i < nodes.size(); i++) {
+    for (int j = 0; j < nodes[i].succ.size(); j++) {
+      nodes[nodes[i].succ[j]].pred.push_back(i);
+    }
+  }
 }
 
 void algorithmASAP(
     std::vector<TreeNode> &nodes,
     std::vector<std::pair<TreeNode::nodeId, TreeNode::nodeId>> &deletedEdges,
     std::vector<int> &lensLayer) {
-  std::vector<int> removedNodes = {};
-  removedNodes.resize(nodes.size(), -1);
+  std::vector<int> removedNodes(nodes.size(), -1);
+
+    std::vector<int> degInNodes;
+    degInNodes.reserve(nodes.size());
+    for (const TreeNode &node: nodes) {
+        degInNodes.push_back(node.pred.size());
+    }
 
   int nodesInLayer = 0;
   int removedCount = 0;
   for (int i = 0; removedCount < nodes.size(); i++) {
     for (int j = 0; j < nodes.size(); j++) {
-      if (nodes[j].degM == 0 && removedNodes[j] == -1) {
+      if (degInNodes[j] == 0 && removedNodes[j] == -1) {
         removedNodes[j] = 0;
         removedCount++;
       }
@@ -242,7 +186,7 @@ void algorithmASAP(
         nodesInLayer++;
 
         for (int k = 0; k < nodes[j].succ.size(); k++) {
-          nodes[nodes[j].succ[k]].degM--;
+          degInNodes[nodes[j].succ[k]]--;
         }
         removedNodes[j] = 1;
       }
@@ -253,15 +197,7 @@ void algorithmASAP(
 
   for (int i = 0; i < deletedEdges.size(); i++) {
     nodes[deletedEdges[i].first].succ.push_back(deletedEdges[i].second);
-  }
-}
-
-void removeIncidentArcs(std::vector<TreeNode> &nodes, TreeNode::nodeId id) {
-  for (TreeNode &node : nodes) {
-    node.succ.erase(std::remove(node.succ.begin(), node.succ.end(), id),
-                    node.succ.end());
-    node.pred.erase(std::remove(node.pred.begin(), node.pred.end(), id),
-                    node.pred.end());
+    nodes[deletedEdges[i].second].pred.push_back(deletedEdges[i].first);
   }
 }
 
@@ -291,12 +227,12 @@ void addLineSegment(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer,
 bool addDummyNodes(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer) {
   for (int i = 0; i < nodes.size(); i++) {
     for (int j = 0; j < nodes[i].succ.size(); j++) {
-      if (nodes[nodes[i].succ[j]].layer - nodes[i].layer > 1) {
-        addLineSegment(nodes, lensLayer, i, j, 1);
-        return false;
-      }
-      if (nodes[nodes[i].succ[j]].layer - nodes[i].layer < -1) {
-        addLineSegment(nodes, lensLayer, i, j, -1);
+      if ((nodes[nodes[i].succ[j]].layer - nodes[i].layer > 1) || (nodes[nodes[i].succ[j]].layer - nodes[i].layer < -1)) {
+        int order = -1;
+        if (nodes[nodes[i].succ[j]].layer - nodes[i].layer > 1) {
+          order = 1;
+        }
+        addLineSegment(nodes, lensLayer, i, j, order);
         return false;
       }
     }
@@ -312,29 +248,6 @@ void addAllDummyNodes(std::vector<TreeNode> &nodes,
   }
 }
 
-void printInfo(std::vector<TreeNode> &nodes) {
-  degReinit(nodes);
-  predReinit(nodes);
-  for (int i = 0; i < nodes.size(); i++) {
-    if (nodes[i].isDummy == true) {
-      printf("№%i (dummy)| number %i, layer %i, dp %i, dm %i", nodes[i].id,
-             nodes[i].number, nodes[i].layer, nodes[i].degP, nodes[i].degM);
-    } else {
-      printf("№%i| number %i, layer %i, dp %i, dm %i", nodes[i].id,
-             nodes[i].number, nodes[i].layer, nodes[i].degP, nodes[i].degM);
-    }
-    printf("\nsucc: ");
-    for (int j = 0; j < nodes[i].succ.size(); j++) {
-      printf("%i ", nodes[i].succ[j]);
-    }
-    printf("\npred: ");
-    for (int j = 0; j < nodes[i].pred.size(); j++) {
-      printf("%i ", nodes[i].pred[j]);
-    }
-    printf("\n");
-  }
-}
-
 TreeNode::nodeId Net::addNode() {
   nodeId id = static_cast<nodeId>(nodes.size());
   nodes.emplace_back();
@@ -345,9 +258,8 @@ TreeNode::nodeId Net::addNode() {
 
 const std::vector<TreeNode::nodeId> &Net::getSources() {
   if (!sourcesCalculated) {
-    degReinit(nodes);
     for (int i = 0; i < nodes.size(); i++) {
-      if (nodes[i].degM == 0) {
+      if (nodes[i].pred.size() == 0) {
         sources.push_back(nodes[i].id);
       }
     }
@@ -357,9 +269,8 @@ const std::vector<TreeNode::nodeId> &Net::getSources() {
 
 const std::vector<TreeNode::nodeId> &Net::getSinks() {
   if (!sinksCalculated) {
-    degReinit(nodes);
     for (int i = 0; i < nodes.size(); i++) {
-      if (nodes[i].degP == 0) {
+        if (nodes[i].succ.size() == 0) {
         sinks.push_back(nodes[i].id);
       }
     }
@@ -391,86 +302,107 @@ const TreeNode *Net::getNode(TreeNode::nodeId id) const {
 void Net::transformationGraph() {
   std::vector<std::pair<TreeNode::nodeId, TreeNode::nodeId>> deletedEdges = {};
   greedyFAS(nodes, deletedEdges);
-
+ 
   std::vector<int> lensLayer = {};
   algorithmASAP(nodes, deletedEdges, lensLayer);
 
   addAllDummyNodes(nodes, lensLayer);
+    
+  for (int i = 0; i < nodes.size(); i++) {
+    nodes[i].pred.clear();
+  }
+  for (int i = 0; i < nodes.size(); i++) {
+    for (int j = 0; j < nodes[i].succ.size(); j++) {
+      nodes[nodes[i].succ[j]].pred.push_back(i);
+    }
+  }
+}
 
-  predReinit(nodes);
-  degReinit(nodes);
+enum libConstants {
+    REDUCTION_WIDTH = 2,
+    REDUCTION_HEIGHT = 4,
+    REDUCTION_RELATION_TO_GAP = 2,
+    GET_MIDDLE = 2
+};
+
+void initPositionAndSize(std::vector<TreeNode> &nodes, std::vector<NormalizedElement> &normalizedElements, float nCellSize) {
+    for (TreeNode &node : nodes) {
+      NormalizedElement nElement = {};
+      nElement.id = node.id;
+
+      if (node.isDummy) {
+        NormalizedPoint nPoint = {};
+        nPoint.nX = nCellSize * node.number + (nCellSize / REDUCTION_WIDTH) / REDUCTION_RELATION_TO_GAP;
+        nPoint.nY = nCellSize * node.layer + (nCellSize / REDUCTION_HEIGHT) / REDUCTION_RELATION_TO_GAP;
+
+        nElement.nPoint = nPoint;
+        nElement.nH = 0;
+        nElement.nW = 0;
+      } else {
+        NormalizedPoint nPoint = {};
+        nPoint.nX = nCellSize * node.number;
+        nPoint.nY = nCellSize * node.layer;
+
+        nElement.nPoint = nPoint;
+        nElement.nH = nCellSize / REDUCTION_HEIGHT;
+        nElement.nW = nCellSize / REDUCTION_WIDTH;
+      }
+
+      normalizedElements.push_back(nElement);
+    }
+}
+
+void initConnections(std::vector<TreeNode> &nodes, std::vector<NormalizedElement> &normalizedElements) {
+    int countConnections = 0;
+    for (int i = 0; i < nodes.size(); i++) {
+      for (int &succId : nodes[i].succ) {
+        NormalizedConnection connection = {};
+
+        connection.id = countConnections;
+        connection.startElementId = nodes[i].id;
+        connection.endElementId = succId;
+
+        NormalizedPoint nPointStart = {};
+        nPointStart.nX =
+            normalizedElements[i].nPoint.nX + normalizedElements[i].nW / GET_MIDDLE;
+        nPointStart.nY =
+            normalizedElements[i].nPoint.nY + normalizedElements[i].nH;
+
+        NormalizedPoint nPointEnd = {};
+        nPointEnd.nX = normalizedElements[succId].nPoint.nX +
+                       normalizedElements[succId].nW / GET_MIDDLE;
+        nPointEnd.nY = normalizedElements[succId].nPoint.nY;
+
+        connection.nVertices.push_back(nPointStart);
+        connection.nVertices.push_back(nPointEnd);
+
+        countConnections++;
+
+        normalizedElements[i].connections.push_back(connection);
+      }
+    }
 }
 
 void Net::netTreeNodesToNormalizedElements(
     std::vector<NormalizedElement> &normalizedElements) {
   float maxNumber = -1, maxLayer = -1;
-  for (int i = 0; i < nodes.size(); i++) {
-    if (nodes[i].layer > maxLayer) {
-      maxLayer = nodes[i].layer;
-    }
-    if (nodes[i].number > maxNumber) {
-      maxNumber = nodes[i].number;
-    }
+  for (TreeNode &node : nodes) {
+      if (node.layer > maxLayer) {
+        maxLayer = node.layer;
+      }
+      if (node.number > maxNumber) {
+        maxNumber = node.number;
+      }
   }
   float nCellSize = -1;
 
   if (maxLayer > maxNumber) {
-    nCellSize = 1.0 / (maxLayer + 1);
+    nCellSize = 1 / (maxLayer + 1);
   } else {
-    nCellSize = 1.0 / (maxNumber + 1);
+    nCellSize = 1 / (maxNumber + 1);
   }
 
-  for (int i = 0; i < nodes.size(); i++) {
-    NormalizedElement nElement = {};
-    nElement.id = nodes[i].id;
-
-    if (nodes[i].isDummy) {
-      NormalizedPoint nPoint = {};
-      nPoint.nX = nCellSize * nodes[i].number + (nCellSize / 2) / 2;
-      nPoint.nY = nCellSize * nodes[i].layer + (nCellSize / 4) / 2;
-
-      nElement.nPoint = nPoint;
-      nElement.nH = 0;
-      nElement.nW = 0;
-    } else {
-      NormalizedPoint nPoint = {};
-      nPoint.nX = nCellSize * nodes[i].number;
-      nPoint.nY = nCellSize * nodes[i].layer;
-
-      nElement.nPoint = nPoint;
-      nElement.nH = nCellSize / 4;
-      nElement.nW = nCellSize / 2;
-    }
-
-    normalizedElements.push_back(nElement);
-  }
-
-  int countConnections = 0;
-  for (int i = 0; i < nodes.size(); i++) {
-    for (int j = 0; j < nodes[i].succ.size(); j++) {
-      NormalizedConnection connection = {};
-
-      connection.id = countConnections;
-      connection.startElementId = nodes[i].id;
-      connection.endElementId = nodes[i].succ[j];
-
-      NormalizedPoint nPointStart = {};
-      nPointStart.nX =
-          normalizedElements[i].nPoint.nX + normalizedElements[i].nW / 2;
-      nPointStart.nY =
-          normalizedElements[i].nPoint.nY + normalizedElements[i].nH;
-
-      NormalizedPoint nPointEnd = {};
-      nPointEnd.nX = normalizedElements[nodes[i].succ[j]].nPoint.nX +
-                     normalizedElements[nodes[i].succ[j]].nW / 2;
-      nPointEnd.nY = normalizedElements[nodes[i].succ[j]].nPoint.nY;
-
-      connection.nVertices.push_back(nPointStart);
-      connection.nVertices.push_back(nPointEnd);
-
-      countConnections++;
-
-      normalizedElements[i].connections.push_back(connection);
-    }
-  }
+  initPositionAndSize(nodes, normalizedElements, nCellSize);
+    
+  initConnections(nodes, normalizedElements);
 }

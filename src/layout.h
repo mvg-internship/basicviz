@@ -11,13 +11,9 @@ struct TreeNode {
   std::vector<nodeId> succ = {};
   std::vector<nodeId> pred = {};
   nodeId id = 0;
-  int degP = 0;
-  int degM = 0;
   int layer = 0;
   int number = 0;
   bool isDummy = false;
-  int x = 0;
-  int y = 0;
   float barycentricValue = 0;
 };
 
