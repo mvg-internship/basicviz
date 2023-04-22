@@ -1,6 +1,7 @@
+#include "layout.h"
+
 #include <iostream>
 #include <vector>
-#include "layout.h"
 
 int portOrderValueDefinition(TreeNode node, int portIndex, bool forwardLayerSweep) {
     int  portOrderValue;
