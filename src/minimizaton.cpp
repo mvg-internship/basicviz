@@ -5,23 +5,29 @@
 int portOrderValueDefinition(TreeNode node, int portIndex, bool forwardLayerSweep) {
     int  portOrderValue;
     int  maxPortIndex = node.pred.size()+node.succ.size();
-    //    forward layer sweeps
-    if (forwardLayerSweep) portOrderValue = portIndex;
-        //    backwards layer sweeps
+    if (forwardLayerSweep){
+        //    forward layer sweeps
+        portOrderValue=portIndex;
+    }
     else{
-        if(portIndex<=maxPortIndex)
+        //    backwards layer sweeps
+        if(portIndex<=maxPortIndex){
             portOrderValue=maxPortIndex-portIndex+1;
-        else
+        }
+        else{
             portOrderValue=maxPortIndex+node.succ.size()-portIndex+1;
+        }
     }
     return portOrderValue;
 }
 
 float rankDefinition(TreeNode node, int  nodeIndex,int  portIndex, bool forwardLayerSweep){
-    if (forwardLayerSweep)
-        return nodeIndex+portOrderValueDefinition(node, portIndex,forwardLayerSweep)/node.succ.size()+1;
-    else
-        return nodeIndex+portOrderValueDefinition(node, portIndex,forwardLayerSweep)/node.pred.size()+1;
+    if (forwardLayerSweep){
+        return nodeIndex+portOrderValueDefinition(node,portIndex,forwardLayerSweep)/node.succ.size()+1;
+    }
+    else{
+        return nodeIndex+portOrderValueDefinition(node,portIndex,forwardLayerSweep)/node.pred.size()+1;
+    }
 }
 
 void sortNodes(Net &net, std::vector<TreeNode::nodeId> &layer){
@@ -55,14 +61,18 @@ std::vector<std::vector<TreeNode::nodeId> > Net::getNodesByLayer(){
 }
 
 int getPortIndex(TreeNode::nodeId id, TreeNode node, bool forwardLayerSweep){
-    if (forwardLayerSweep)
-        for(int i=0;i<node.succ.size();++i)
-            if(node.succ[i]==id) return i;
-
-            else
-                for(int i=0;i<node.pred.size();++i)
-                    if(node.pred[i]==id) return i;
-
+    if (forwardLayerSweep){
+        for(int i=0;i<node.succ.size();++i){
+            if(node.succ[i]==id)
+                return i;
+        }
+    }
+    else{
+        for(int i=0;i<node.pred.size();++i){
+            if(node.pred[i]==id)
+                return i;
+        }
+    }
 }
 
 int crossCounting(Net &net, std::vector<std::vector<TreeNode::nodeId> >&tempNodesByLayer){
@@ -72,14 +82,16 @@ int crossCounting(Net &net, std::vector<std::vector<TreeNode::nodeId> >&tempNode
         for (int j=0;j<tempNodesByLayer[i].size();++j){
             TreeNode node = *net.getNode(tempNodesByLayer[i][j]);
             for (int k=0;k<node.pred.size();++k){
-                if (net.getNode(node.pred[k])->layer>node.layer) continue;
+                if (net.getNode(node.pred[k])->layer>node.layer)
+                    continue;
                 std::vector<int> temp (3);
                 temp[0] = net.getNode(node.pred[k])->number;
                 temp[1] = j;
                 edges.push_back(temp);
             }
             for (int k=0;k<node.succ.size();++k){
-                if (net.getNode(node.succ[k])->layer>node.layer) continue;
+                if (net.getNode(node.succ[k])->layer>node.layer)
+                    continue;
                 std::vector<int> temp (3);
                 temp[0] = net.getNode(node.succ[k])->number;
                 temp[1] = j;
@@ -87,18 +99,20 @@ int crossCounting(Net &net, std::vector<std::vector<TreeNode::nodeId> >&tempNode
             }
         }
 
-        for (int j=0;j<edges.size()-1;++j)
-            for (int k=0;k<edges.size()-1;++k)
-                if (edges[k][0]>edges[k+1][0]){
-                    std::swap(edges[k], edges[k+1]);
-                }
-
-        for (int j=0;j<edges.size()-1;++j)
-            for (int k=0;k<edges.size()-1;++k)
-                if (edges[k][1]>edges[k+1][1]){
-                    std::swap(edges[k][1], edges[k+1][1]);
+        for (int j=0;j<edges.size()-1;++j){
+            for(int k=0;k<edges.size()-1;++k){
+                if(edges[k][0]>edges[k+1][0])
+                    std::swap(edges[k],edges[k+1]);
+            }
+        }
+        for (int j=0;j<edges.size()-1;++j){
+            for(int k=0;k<edges.size()-1;++k){
+                if(edges[k][1]>edges[k+1][1]){
+                    std::swap(edges[k][1],edges[k+1][1]);
                     crossNum+=1;
                 }
+            }
+        }
     }
     return crossNum;
 }
@@ -108,7 +122,8 @@ void sortPorts(Net &net, std::vector<std::vector<TreeNode::nodeId> > &nodesByLay
     for (int i=1;i<nodesByLayer.size();++i){
         for(int j=0;j<nodesByLayer[i].size();++j){
             TreeNode *node = net.getNode(nodesByLayer[i][j]);
-            if (node->pred.size()==0) continue;
+            if (node->pred.size()==0)
+                continue;
             std::vector<float> bPred;
             for (int k=0;k<node->pred.size();++k){
                 int index = net.getNode(node->pred[k])->number;
@@ -130,7 +145,8 @@ void sortPorts(Net &net, std::vector<std::vector<TreeNode::nodeId> > &nodesByLay
         for(int j=0;j<nodesByLayer[i].size();++j){
             TreeNode *node = net.getNode(nodesByLayer[i][j]);
             std::vector<float> bSucc;
-            if (node->succ.size()==0) continue;
+            if (node->succ.size()==0)
+                continue;
             for (int k=0;k<node->succ.size();++k){
                 int index = net.getNode(node->succ[k])->number;
                 int portIndex = getPortIndex(node->id, *net.getNode(node->succ[k]), false);
@@ -175,8 +191,9 @@ void layerSweepAlgorithm(Net &net){
         if (intersections>intersectionsAfterFls || intersections==-1){
             intersections = intersectionsAfterFls;
             std::copy(tempNodesByLayer.begin(), tempNodesByLayer.end(), nodesByLayer.begin());
-        }else
+        }else{
             break;
+        }
         //            backwards layer sweeps
         for (int i=tempNodesByLayer.size()-2;i>=0;i--){
             for(int j=0;j<tempNodesByLayer[i].size();++j){
@@ -197,8 +214,9 @@ void layerSweepAlgorithm(Net &net){
             intersections = intersectionsAfterBls;
             std::copy(tempNodesByLayer.begin(), tempNodesByLayer.end(), nodesByLayer.begin());
         }
-        else
+        else{
             break;
+        }
     }
 
     for (int i=0;i<nodesByLayer.size();++i){
