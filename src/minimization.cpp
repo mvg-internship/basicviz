@@ -13,6 +13,7 @@
 float forwardRankDefinition(TreeNode node, int nodeIndex, int portIndex){
   return nodeIndex + portIndex / (node.succ.size() + 1);
 }
+
 float backwardRankDefinition(TreeNode node, int nodeIndex, int portIndex) {
   int portOrderValue;
   int maxPortIndex = node.pred.size() + node.succ.size();
@@ -98,25 +99,34 @@ int crossCounting(Net &net, std::vector<std::vector<TreeNode::nodeId>> &tempNode
   return crossNum;
 }
 
+std::vector<std::pair<float, TreeNode::nodeId>> getBarycentricValueForPorts(Net &net, std::vector<TreeNode::nodeId> &vec, bool forwardLayerSweep){
+  std::vector<std::pair<float, TreeNode::nodeId>> b;
+  for (TreeNode::nodeId &id : vec) {
+    TreeNode *node = net.getNode(id);
+    float bValue;
+    if (forwardLayerSweep){
+      bValue = forwardRankDefinition(*node,node->number,
+        getPortIndex(node->id,*node))/
+        float(node->succ.size()+node->pred.size());
+    } else{
+      bValue = backwardRankDefinition(*node, node->number,
+        getPortIndex(node->id, *node)) /
+        float(node->succ.size() + node->pred.size());
+    }
+    b.push_back({ bValue, node->id });
+  }
+  return b;
+}
+
 void sortPorts(Net& net, std::vector<std::vector<TreeNode::nodeId>>& nodesByLayer) {
   for (int i = 1; i < nodesByLayer.size(); ++i) {
     for (int j = 0; j < nodesByLayer[i].size(); ++j) {
       TreeNode *node = net.getNode(nodesByLayer[i][j]);
       std::vector<std::pair<float, TreeNode::nodeId>> bPred, bSucc;
-      for (TreeNode::nodeId &predecessor : node->pred) {
-        TreeNode *predecessorNode = net.getNode(predecessor);
-        float bValue = forwardRankDefinition(*predecessorNode, predecessorNode->number,
-          getPortIndex(node->id, *predecessorNode)) /
-          float(node->succ.size() + node->pred.size());
-        bPred.push_back({ bValue, predecessorNode->id });
-      }
-      for (TreeNode::nodeId &successor : node->succ) {
-        TreeNode *successorNode = net.getNode(successor);
-        float bValue = backwardRankDefinition(*successorNode, successorNode->number,
-          getPortIndex(node->id, *successorNode)) /
-          float(node->succ.size() + node->pred.size());
-        bSucc.push_back({ bValue, successorNode->id });
-      }
+
+      bPred = getBarycentricValueForPorts(net, node->pred,true);
+      bSucc = getBarycentricValueForPorts(net, node->succ,false);
+
       std::sort(bPred.begin(), bPred.end());
       std::sort(bSucc.begin(), bSucc.end());
 
