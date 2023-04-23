@@ -12,7 +12,7 @@
 namespace {
 
 class BenchNetReader: public lorina::bench_reader {
-  mutable std::unordered_map<std::string, Net::nodeId> nodeMap;
+  mutable std::unordered_map<std::string, Net::Id> nodeMap;
   Net &net;
 
 public:
@@ -62,7 +62,7 @@ private:
   }
 
   TreeNode *getNode(const std::string &name) const {
-    Net::nodeId id;
+    Net::Id id;
 
     auto it = nodeMap.find(name);
     if (it != nodeMap.end()) {

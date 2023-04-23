@@ -6,11 +6,11 @@
 #include "main.h"
 
 struct TreeNode {
-  using nodeId = int;
+  using Id = int;
 
-  std::vector<nodeId> succ = {};
-  std::vector<nodeId> pred = {};
-  nodeId id = 0;
+  std::vector<Id> succ = {};
+  std::vector<Id> pred = {};
+  Id id = 0;
   int layer = 0;
   int number = 0;
   bool isDummy = false;
@@ -18,36 +18,36 @@ struct TreeNode {
 };
 
 struct Net {
-  using nodeId = TreeNode::nodeId;
+  using Id = TreeNode::Id;
 
 private:
   std::vector<TreeNode> nodes;
-  std::vector<TreeNode::nodeId> sources = {};
-  std::vector<TreeNode::nodeId> sinks = {};
+  std::vector<TreeNode::Id> sources = {};
+  std::vector<TreeNode::Id> sinks = {};
   bool sourcesCalculated = false;
   bool sinksCalculated = false;
 
 public:
-  const std::vector<nodeId> &getSources();
-  const std::vector<nodeId> &getSinks();
+  const std::vector<Id> &getSources();
+  const std::vector<Id> &getSinks();
 
-  const std::vector<nodeId> &getSuccessors(nodeId id) const;
-  const std::vector<nodeId> &getPredecessors(nodeId id) const;
+  const std::vector<Id> &getSuccessors(Id id) const;
+  const std::vector<Id> &getPredecessors(Id id) const;
 
-  nodeId addNode();
+  Id addNode();
 
-  TreeNode *getNode(nodeId id) {
+  TreeNode *getNode(Id id) {
     const Net &net = *this;
     return const_cast<TreeNode *>(net.getNode(id));
   }
 
-  const TreeNode *getNode(nodeId id) const;
+  const TreeNode *getNode(Id id) const;
 
   void transformationGraph();
   void netTreeNodesToNormalizedElements(
       std::vector<NormalizedElement> &normalizedElements);
 
-  std::vector<std::vector<TreeNode::nodeId>> &getNodesByLayer();
+  std::vector<std::vector<TreeNode::Id>> &getNodesByLayer();
 };
 
 #endif // LAYOUT_H_
