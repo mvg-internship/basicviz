@@ -86,10 +86,12 @@ int crossCounting(Net &net, std::vector<std::vector<TreeNode::nodeId>> &tempNode
       makeEdges(net, node->succ, j, node, edges);
     }
     std::sort(edges.begin(), edges.end());
-    for (int i = 0; i < edges.size() - 1; ++i) {
-      if (edges[i].second > edges[i + 1].second) {
-        std::swap(edges[i], edges[i + 1]);
-        ++crossNum;
+    for (int j = 0; j < edges.size() - 1; ++j) {
+      for (int k = 0; k < edges.size() - 1; ++k) {
+        if (edges[k].second > edges[k + 1].second) {
+          std::swap(edges[k], edges[k + 1]);
+          crossNum += 1;
+        }
       }
     }
   }
