@@ -67,24 +67,23 @@ int getPortIndex(TreeNode::nodeId id, TreeNode node) {
     }
 }
 
+void makeEdges(Net &net, std::vector<TreeNode::nodeId> vec, int j, TreeNode *node, std::vector<std::pair<int, int>> &edges){
+  for (TreeNode::nodeId &id : vec) {
+  TreeNode *connectedNode = net.getNode(id);
+  if (connectedNode->layer > node->layer)
+    continue;
+  edges.emplace_back(connectedNode->number, j);
+  }
+}
+
 int crossCounting(Net &net, std::vector<std::vector<TreeNode::nodeId>> &tempNodesByLayer) {
   int crossNum = 0;
   for (int i = 1; i < tempNodesByLayer.size(); ++i) {
     std::vector<std::pair<int, int>> edges;
     for (int j = 0; j < tempNodesByLayer[i].size(); ++j) {
-      TreeNode node = *net.getNode(tempNodesByLayer[i][j]);
-      for (TreeNode::nodeId &predecessor : node.pred) {
-        TreeNode *predecessorNode = net.getNode(predecessor);
-        if (predecessorNode->layer > node.layer)
-          continue;
-        edges.emplace_back(predecessorNode->number, j);
-      }
-      for (TreeNode::nodeId &successor : node.succ) {
-        TreeNode *successorNode = net.getNode(successor);
-        if (successorNode->layer > node.layer)
-          continue;
-        edges.emplace_back(successorNode->number, j);
-      }
+      TreeNode *node = net.getNode(tempNodesByLayer[i][j]);
+      getEdges(net, node->pred, j, node, edges);
+      getEdges(net, node->succ, j, node, edges);
     }
     std::sort(edges.begin(), edges.end());
     for (int j = 0; j < edges.size() - 1; ++j) {
