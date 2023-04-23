@@ -283,7 +283,7 @@ int main(int argc, char *argv[]) {
     return BENCH_READER_ERROR;
   }
 
-  net.transformationGraph();
+  net.assignLayers();
 
   std::vector<NormalizedElement> normalizedElements = {};
   net.netTreeNodesToNormalizedElements(normalizedElements);

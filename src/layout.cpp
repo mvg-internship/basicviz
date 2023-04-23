@@ -2,7 +2,7 @@
 //
 // Part of the Utopia EDA Project, under the Apache License v2.0
 // SPDX-License-Identifier: Apache-2.0
-// Copyright <yearnum> ISP RAS (http://www.ispras.ru)
+// Copyright 2023 ISP RAS (http://www.ispras.ru)
 //
 //===----------------------------------------------------------------------===//
 
@@ -14,9 +14,9 @@
 #include <map>
 
 bool algorithmDFS(
-     const TreeNode &node,
-     std::vector<TreeNode> &nodes,
-     std::vector<bool> &usedId) {
+    const TreeNode &node,
+    std::vector<TreeNode> &nodes,
+    std::vector<bool> &usedId) {
   usedId[node.id] = true;
   for (TreeNode::Id succId : node.succ) {
     if (usedId[succId]) {
@@ -54,9 +54,9 @@ struct EdgeCount {
 };
 
 void removeEdgeCount(
-     int i,
-     std::vector<EdgeCount> &edgeCounts,
-     std::vector<TreeNode> &nodes) {
+    int i,
+    std::vector<EdgeCount> &edgeCounts,
+    std::vector<TreeNode> &nodes) {
   const TreeNode &node = nodes[i];
   for (TreeNode::Id id : node.succ) {
     edgeCounts[id].degIn--;
@@ -73,9 +73,44 @@ bool comparatorId(TreeNode &first, TreeNode &second) {
   return first.id < second.id;
 }
 
+size_t dispatchSinks(
+    std::vector<TreeNode> &nodes,
+    std::vector<EdgeCount> &edgeCounts,
+    std::vector<TreeNode::Id> &s2) {
+  size_t decrlenNodes = 0;
+  for (int i = 0; i < edgeCounts.size(); i++) {
+    if (edgeCounts[i].degOut == 0) {
+      s2.push_back(i);
+      removeEdgeCount(i, edgeCounts, nodes);
+      decrlenNodes++;
+
+      i = -1;
+    }
+  }
+  return decrlenNodes;
+}
+
+size_t dispatchSources(
+    std::vector<TreeNode> &nodes,
+    std::vector<EdgeCount> &edgeCounts,
+    std::vector<TreeNode::Id> &s1) {
+  size_t decrlenNodes = 0;
+  for (int i = 0; i < edgeCounts.size(); i++) {
+    if (edgeCounts[i].degIn == 0) {
+      s1.push_back(i);
+      removeEdgeCount(i, edgeCounts, nodes);
+      decrlenNodes++;
+
+      i = -1;
+    }
+  }
+  return decrlenNodes;
+}
+
+// Finding and removing the minimum number of arcs to remove all cycles
 void greedyFAS(
-     std::vector<TreeNode> &nodes,
-     std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges) {
+    std::vector<TreeNode> &nodes,
+    std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges) {
   std::vector<TreeNode::Id> s1 = {}, s2 = {};
 
   std::vector<EdgeCount> edgeCounts;
@@ -87,25 +122,8 @@ void greedyFAS(
 
   size_t lenNodes = nodes.size();
   while (lenNodes > 0) {
-    for (int i = 0; i < edgeCounts.size(); i++) {
-      if (edgeCounts[i].degOut == 0) {
-        s2.push_back(i);
-        removeEdgeCount(i, edgeCounts, nodes);
-        lenNodes--;
-
-        i = -1;
-      }
-    }
-
-    for (int i = 0; i < edgeCounts.size(); i++) {
-      if (edgeCounts[i].degIn == 0) {
-        s1.push_back(i);
-        removeEdgeCount(i, edgeCounts, nodes);
-        lenNodes--;
-
-        i = -1;
-      }
-    }
+    lenNodes -= dispatchSinks(nodes, edgeCounts, s2);
+    lenNodes -= dispatchSources(nodes, edgeCounts, s1);
 
     if (lenNodes > 0) {
       int max;
@@ -130,13 +148,14 @@ void greedyFAS(
   }
 
   std::map<TreeNode::Id, TreeNode::Id> mp;
-  for (int i = 0; i < s1.size(); i++) {
-    mp[s1[i]] = i;
+  int index = 0;
+  for (auto it = s1.begin(), end = s1.end(); it != end; ++it) {
+    mp[*it] = index++;
   }
-  for (int i = 0; i < s2.size(); i++) {
-    mp[s2[s2.size() - i - 1]] = i + s1.size();
+  for (auto it = s2.rbegin(), end = s2.rend(); it != end; ++it) {
+    mp[*it] = index++;
   }
-    
+
   for (TreeNode &node : nodes) {
     for (int j = node.succ.size() - 1; j >= 0; j--) {
       if (mp[node.id] > mp[node.succ[j]]) {
@@ -153,10 +172,11 @@ void greedyFAS(
   }
 }
 
+// Assigning a layer and numbers in this layer for each vertex of the graph
 void algorithmASAP(
-     std::vector<TreeNode> &nodes,
-     std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges,
-     std::vector<int> &lensLayer) {
+    std::vector<TreeNode> &nodes,
+    std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges,
+    std::vector<int> &lensLayer) {
   std::vector<int> removedNodes(nodes.size(), -1);
 
   std::vector<int> degInNodes;
@@ -191,18 +211,18 @@ void algorithmASAP(
     nodesInLayer = 0;
   }
 
-  for (int i = 0; i < deletedEdges.size(); i++) {
-    nodes[deletedEdges[i].first].succ.push_back(deletedEdges[i].second);
-    nodes[deletedEdges[i].second].pred.push_back(deletedEdges[i].first);
+  for (auto [src, dst] : deletedEdges) {
+    nodes[src].succ.push_back(dst);
+    nodes[dst].pred.push_back(src);
   }
 }
 
 void addLineSegment(
-     std::vector<TreeNode> &nodes,
-     std::vector<int> &lensLayer,
-     TreeNode &nodeStart,
-     int idEnd,
-     bool isDownward) {
+    std::vector<TreeNode> &nodes,
+    std::vector<int> &lensLayer,
+    TreeNode &nodeStart,
+    int idEnd,
+    bool isDownward) {
   int order;
   if (isDownward) {
     order = 1;
@@ -258,8 +278,8 @@ bool addDummyNodes(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer) {
 }
 
 void addAllDummyNodes(
-     std::vector<TreeNode> &nodes,
-     std::vector<int> &lensLayer) {
+    std::vector<TreeNode> &nodes,
+    std::vector<int> &lensLayer) {
   bool allDummysAdded = false;
   while (!allDummysAdded) {
     allDummysAdded = addDummyNodes(nodes, lensLayer);
@@ -315,7 +335,8 @@ const TreeNode *Net::getNode(TreeNode::Id id) const {
   return nullptr;
 }
 
-void Net::transformationGraph() {
+// Assigning a layer and a number, introducing dummy vertices
+void Net::assignLayers() {
   std::vector<std::pair<TreeNode::Id, TreeNode::Id>> deletedEdges = {};
   greedyFAS(nodes, deletedEdges);
 
@@ -333,9 +354,9 @@ enum {
 };
 
 void initPositionAndSize(
-     std::vector<TreeNode> &nodes,
-     std::vector<NormalizedElement> &normalizedElements,
-     float nCellSize) {
+    std::vector<TreeNode> &nodes,
+    std::vector<NormalizedElement> &normalizedElements,
+    float nCellSize) {
   for (TreeNode &node : nodes) {
     NormalizedElement nElement = {};
     nElement.id = node.id;
@@ -365,8 +386,8 @@ void initPositionAndSize(
 }
 
 void initConnections(
-     std::vector<TreeNode> &nodes,
-     std::vector<NormalizedElement> &normalizedElements) {
+    std::vector<TreeNode> &nodes,
+    std::vector<NormalizedElement> &normalizedElements) {
   int countConnections = 0;
   for (int i = 0; i < nodes.size(); i++) {
     for (int &succId : nodes[i].succ) {
@@ -398,7 +419,7 @@ void initConnections(
 }
 
 void Net::netTreeNodesToNormalizedElements(
-     std::vector<NormalizedElement> &normalizedElements) {
+    std::vector<NormalizedElement> &normalizedElements) {
   float maxNumber = -1, maxLayer = -1;
   for (TreeNode &node : nodes) {
     if (node.layer > maxLayer) {
