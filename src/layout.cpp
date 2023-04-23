@@ -108,6 +108,10 @@ size_t dispatchSources(
 }
 
 // Finding and removing the minimum number of arcs to remove all cycles
+// ADetails on the algorithm used can be found in:
+// Jannis Pohlmann, Configurable Graph Drawing Algorithms for the TikZ Graphics
+// Description Language, Diploma Thesis, Institute of Theoretical Computer
+// Science, Universität zu Lübeck, 2011.
 void greedyFAS(
     std::vector<TreeNode> &nodes,
     std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges) {
