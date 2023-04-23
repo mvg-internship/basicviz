@@ -11,29 +11,18 @@
 #include <iostream>
 #include <vector>
 
-int portOrderValueDefinition(TreeNode node, int portIndex, bool forwardLayerSweep) {
+float forwardRankDefinition(TreeNode node, int nodeIndex, int portIndex){
+    return nodeIndex + portIndex / (node.succ.size() + 1);
+}
+float backwardRankDefinition(TreeNode node, int nodeIndex, int portIndex) {
     int portOrderValue;
     int maxPortIndex = node.pred.size() + node.succ.size();
-    if (forwardLayerSweep) {
-        //    forward layer sweeps
-        portOrderValue = portIndex;
+    if (portIndex <= maxPortIndex) {
+        portOrderValue = maxPortIndex - portIndex + 1;
     } else {
-        //    backwards layer sweeps
-        if (portIndex <= maxPortIndex) {
-            portOrderValue = maxPortIndex - portIndex + 1;
-        } else {
-            portOrderValue = maxPortIndex + node.succ.size() - portIndex + 1;
-        }
+        portOrderValue = maxPortIndex + node.succ.size() - portIndex + 1;
     }
-    return portOrderValue;
-}
-
-float rankDefinition(TreeNode node, int nodeIndex, int portIndex, bool forwardLayerSweep) {
-    if (forwardLayerSweep) {
-        return nodeIndex + portOrderValueDefinition(node, portIndex, forwardLayerSweep) / node.succ.size() + 1;
-    } else {
-        return nodeIndex + portOrderValueDefinition(node, portIndex, forwardLayerSweep) / node.pred.size() + 1;
-    }
+    return nodeIndex + portOrderValue / (node.pred.size() + 1);
 }
 
 void sortNodes(Net &net, std::vector<TreeNode::nodeId> &layer) {
@@ -131,13 +120,13 @@ void sortPorts(Net &net, std::vector<std::vector<TreeNode::nodeId>> &nodesByLaye
             for (int k = 0; k < node->pred.size(); ++k) {
                 int index = net.getNode(node->pred[k])->number;
                 int portIndex = getPortIndex(node->id, *net.getNode(node->pred[k]));
-                bPred.push_back(rankDefinition( *net.getNode(node->pred[k]), index, portIndex, true) /
+                bPred.push_back(forwardRankDefinition( *net.getNode(node->pred[k]), index, portIndex) /
                         float(node->succ.size() + node->pred.size()));
             }
             for (int k = 0; k < bPred.size() - 1; ++k) {
                 for (int l = 0; l < bPred.size() - 1; ++l) {
                     if (bPred[l] > bPred[l + 1]) {
-                        std::swap(node- pred[l], node->pred[l + 1]);
+                        std::swap(node->pred[l], node->pred[l + 1]);
                         std::swap(bPred[l], bPred[l + 1]);
                     }
                 }
@@ -154,7 +143,7 @@ void sortPorts(Net &net, std::vector<std::vector<TreeNode::nodeId>> &nodesByLaye
             for (int k = 0; k < node->succ.size(); ++k) {
                 int index = net.getNode(node->succ[k])->number;
                 int portIndex = getPortIndex(node->id, *net.getNode(node->succ[k]));
-                bSucc.push_back(rankDefinition( *net.getNode(node->succ[k]), index, portIndex, false) /
+                bSucc.push_back(backwardRankDefinition( *net.getNode(node->succ[k]), index, portIndex) /
                         float(node->succ.size() + node->pred.size()));
             }
             for (int k = 0; k < bSucc.size() - 1; ++k) {
@@ -179,9 +168,9 @@ void barycentricValueDefinition(Net &net, TreeNode *node, int increment) {
         int index = net.getNode(node->pred[k])->number;
         int portIndex = getPortIndex(node->id, * net.getNode(node->pred[k]));
         if (increment == 1) {
-            rank += rankDefinition( *net.getNode(node->pred[k]), index, portIndex, true);
+            rank += forwardRankDefinition( *net.getNode(node->pred[k]), index, portIndex);
         } else {
-            rank += rankDefinition( *net.getNode(node->pred[k]), index, portIndex, false);
+            rank += backwardRankDefinition( *net.getNode(node->pred[k]), index, portIndex);
         }
     }
     for (int k = 0; k < node->succ.size(); ++k) {
@@ -191,9 +180,9 @@ void barycentricValueDefinition(Net &net, TreeNode *node, int increment) {
         int index = net.getNode(node->succ[k])->number;
         int portIndex = getPortIndex(node->id, *net.getNode(node->succ[k]));
         if (increment == 1) {
-            rank += rankDefinition( *net.getNode(node->pred[k]), index, portIndex, true);
+            rank += forwardRankDefinition( *net.getNode(node->pred[k]), index, portIndex);
         } else {
-            rank += rankDefinition( *net.getNode(node->succ[k]), index, portIndex, false);
+            rank += backwardRankDefinition( *net.getNode(node->succ[k]), index, portIndex);
         }
 
     }
