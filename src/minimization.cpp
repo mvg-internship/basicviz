@@ -59,9 +59,10 @@ int getAmountOfLayers(std::vector < TreeNode > &nodes) {
 std::vector<std::vector<TreeNode::nodeId>> Net::getNodesByLayer() {
     int amountOfLayers = getAmountOfLayers(this->nodes);
     std::vector<std::vector<TreeNode::nodeId>> nodesByLayer(amountOfLayers + 1);
-    for (int i = 0; i < this->nodes.size(); ++i) {
-        nodesByLayer.at(this->nodes[i].layer).push_back(this->nodes[i].id);
-        this->nodes[i].number = nodesByLayer.at(this->nodes[i].layer).size() - 1;
+    for (TreeNode &node: nodes) {
+        std::vector<TreeNode::nodeId> &layer = nodesByLayer[node.layer];
+        layer.push_back(node.id);
+        node.number = layer.size() - 1;
     }
     return nodesByLayer;
 }
