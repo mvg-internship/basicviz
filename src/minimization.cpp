@@ -165,6 +165,17 @@ void barycentricValueDefinition(Net &net, TreeNode *node, int increment) {
   node->barycentricValue = rank / connectionsToAdjacentLayer;
 }
 
+bool stopAlgorithm(Net &net, std::vector<std::vector<TreeNode::nodeId>> &tempNodesByLayer, int &intersections, std::vector<std::vector<TreeNode::nodeId>> &nodesByLayer){
+  int intersectionsAfterAlgorithm = crossCounting(net, tempNodesByLayer);
+  if (intersections > intersectionsAfterAlgorithm || intersections == -1) {
+    intersections = intersectionsAfterAlgorithm;
+    std::copy(tempNodesByLayer.begin(), tempNodesByLayer.end(), nodesByLayer.begin());
+    return false;
+  } else {
+    return true;
+  }
+}
+
 void layerSweepAlgorithm(Net &net) {
   std::vector<std::vector<TreeNode::nodeId>> nodesByLayer = net.getNodesByLayer();
   std::vector<std::vector<TreeNode::nodeId>> tempNodesByLayer(nodesByLayer.size());
@@ -179,15 +190,9 @@ void layerSweepAlgorithm(Net &net) {
       }
       sortNodes(net, tempNodesByLayer[i]);
     }
+    if (stopAlgorithm(net, tempNodesByLayer, intersections, nodesByLayer))
+        break;
 
-    int intersectionsAfterFls = crossCounting(net, tempNodesByLayer);
-
-    if (intersections > intersectionsAfterFls || intersections == -1) {
-      intersections = intersectionsAfterFls;
-      std::copy(tempNodesByLayer.begin(), tempNodesByLayer.end(), nodesByLayer.begin());
-    } else {
-      break;
-    }
     //            backwards layer sweeps
     for (int i = tempNodesByLayer.size() - 2; i >= 0; i--) {
       for (int j = 0; j < tempNodesByLayer[i].size(); ++j) {
@@ -195,14 +200,8 @@ void layerSweepAlgorithm(Net &net) {
       }
         sortNodes(net, tempNodesByLayer[i]);
     }
-    int intersectionsAfterBls = crossCounting(net, tempNodesByLayer);
-
-    if (intersections > intersectionsAfterBls || intersections == -1) {
-      intersections = intersectionsAfterBls;
-      std::copy(tempNodesByLayer.begin(), tempNodesByLayer.end(), nodesByLayer.begin());
-    } else {
-        break;
-    }
+    if (stopAlgorithm(net, tempNodesByLayer, intersections, nodesByLayer))
+      break;
   }
 
   for (int i = 0; i < nodesByLayer.size(); ++i) {
