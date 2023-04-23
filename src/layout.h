@@ -1,3 +1,11 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of the Utopia EDA Project, under the Apache License v2.0
+// SPDX-License-Identifier: Apache-2.0
+// Copyright <yearnum> ISP RAS (http://www.ispras.ru)
+//
+//===----------------------------------------------------------------------===//
+
 #ifndef LAYOUT_H_
 #define LAYOUT_H_
 

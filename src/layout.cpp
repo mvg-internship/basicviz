@@ -1,3 +1,11 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of the Utopia EDA Project, under the Apache License v2.0
+// SPDX-License-Identifier: Apache-2.0
+// Copyright <yearnum> ISP RAS (http://www.ispras.ru)
+//
+//===----------------------------------------------------------------------===//
+
 #include "layout.h"
 #include "netfmt_bench.h"
 
@@ -5,9 +13,10 @@
 #include <cassert>
 #include <map>
 
-bool algorithmDFS(const TreeNode &node,
-                  std::vector<TreeNode> &nodes,
-                  std::vector<bool> &usedId) {
+bool algorithmDFS(
+     const TreeNode &node,
+     std::vector<TreeNode> &nodes,
+     std::vector<bool> &usedId) {
   usedId[node.id] = true;
   for (TreeNode::Id succId : node.succ) {
     if (usedId[succId]) {
@@ -44,8 +53,10 @@ struct EdgeCount {
   int degIn = 0;
 };
 
-void removeEdgeCount(int i, std::vector<EdgeCount> &edgeCounts,
-                     std::vector<TreeNode> &nodes) {
+void removeEdgeCount(
+     int i,
+     std::vector<EdgeCount> &edgeCounts,
+     std::vector<TreeNode> &nodes) {
   const TreeNode &node = nodes[i];
   for (TreeNode::Id id : node.succ) {
     edgeCounts[id].degIn--;
@@ -62,9 +73,9 @@ bool comparatorId(TreeNode &first, TreeNode &second) {
   return first.id < second.id;
 }
 
-void greedyFAS(std::vector<TreeNode> &nodes,
-               std::vector<std::pair<TreeNode::Id,
-               TreeNode::Id>> &deletedEdges) {
+void greedyFAS(
+     std::vector<TreeNode> &nodes,
+     std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges) {
   std::vector<TreeNode::Id> s1 = {}, s2 = {};
 
   std::vector<EdgeCount> edgeCounts;
@@ -118,14 +129,14 @@ void greedyFAS(std::vector<TreeNode> &nodes,
     }
   }
 
-  std::vector<TreeNode::Id> &ordered = s1;
-  ordered.insert(ordered.end(), s2.rbegin(), s2.rend());
-
   std::map<TreeNode::Id, TreeNode::Id> mp;
-  for (int i = 0; i < ordered.size(); i++) {
-    mp[ordered[i]] = i;
+  for (int i = 0; i < s1.size(); i++) {
+    mp[s1[i]] = i;
   }
-
+  for (int i = 0; i < s2.size(); i++) {
+    mp[s2[s2.size() - i - 1]] = i + s1.size();
+  }
+    
   for (TreeNode &node : nodes) {
     for (int j = node.succ.size() - 1; j >= 0; j--) {
       if (mp[node.id] > mp[node.succ[j]]) {
@@ -142,10 +153,10 @@ void greedyFAS(std::vector<TreeNode> &nodes,
   }
 }
 
-void algorithmASAP(std::vector<TreeNode> &nodes,
-                   std::vector<std::pair<TreeNode::Id,
-                   TreeNode::Id>> &deletedEdges,
-                   std::vector<int> &lensLayer) {
+void algorithmASAP(
+     std::vector<TreeNode> &nodes,
+     std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges,
+     std::vector<int> &lensLayer) {
   std::vector<int> removedNodes(nodes.size(), -1);
 
   std::vector<int> degInNodes;
@@ -186,45 +197,59 @@ void algorithmASAP(std::vector<TreeNode> &nodes,
   }
 }
 
-void addLineSegment(std::vector<TreeNode> &nodes,
-                    std::vector<int> &lensLayer,
-                    TreeNode &nodeStart,
-                    int idEnd,
-                    bool isDownward) {
+void addLineSegment(
+     std::vector<TreeNode> &nodes,
+     std::vector<int> &lensLayer,
+     TreeNode &nodeStart,
+     int idEnd,
+     bool isDownward) {
   int order;
   if (isDownward) {
     order = 1;
   } else {
     order = -1;
   }
+
   int idPrevSucc = nodeStart.succ[idEnd];
   nodeStart.succ[idEnd] = nodes.size();
   for (int i = nodeStart.layer + order;
        (i < nodes[idPrevSucc].layer && order == 1) ||
        (i > nodes[idPrevSucc].layer && order == -1);
-       i = i + order) {
+       i += order) {
     TreeNode dummy = {};
     dummy.isDummy = true;
     dummy.id = static_cast<int>(nodes.size());
     dummy.layer = i;
     dummy.number = lensLayer[i];
     lensLayer[i]++;
+    if (i == nodeStart.layer + order) {
+      dummy.pred.push_back(nodeStart.id);
+    } else {
+      dummy.pred.push_back(dummy.id - 1);
+    }
     if (i + order == nodes[idPrevSucc].layer) {
       dummy.succ.push_back(idPrevSucc);
+      nodes[idPrevSucc].pred.push_back(dummy.id);
     } else {
       dummy.succ.push_back(dummy.id + 1);
     }
     nodes.push_back(dummy);
+  }
+
+  for (int i = 0; i < nodes[idPrevSucc].pred.size(); i++) {
+    if (nodes[idPrevSucc].pred[i] == nodeStart.id) {
+      nodes[idPrevSucc].pred.erase(nodes[idPrevSucc].pred.begin() + i);
+      break;
+    }
   }
 }
 
 bool addDummyNodes(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer) {
   for (TreeNode &node : nodes) {
     for (int j = 0; j < node.succ.size(); j++) {
-      if ((nodes[node.succ[j]].layer - node.layer > 1) ||
-          (nodes[node.succ[j]].layer - node.layer < -1)) {
-        addLineSegment(nodes, lensLayer, node, j,
-                       nodes[node.succ[j]].layer - node.layer > 1);
+      int distance = nodes[node.succ[j]].layer - node.layer;
+      if (distance > 1 || distance < -1) {
+        addLineSegment(nodes, lensLayer, node, j, distance > 1);
         return false;
       }
     }
@@ -232,8 +257,9 @@ bool addDummyNodes(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer) {
   return true;
 }
 
-void addAllDummyNodes(std::vector<TreeNode> &nodes,
-                      std::vector<int> &lensLayer) {
+void addAllDummyNodes(
+     std::vector<TreeNode> &nodes,
+     std::vector<int> &lensLayer) {
   bool allDummysAdded = false;
   while (!allDummysAdded) {
     allDummysAdded = addDummyNodes(nodes, lensLayer);
@@ -306,9 +332,10 @@ enum {
   GetMiddle = 2
 };
 
-void initPositionAndSize(std::vector<TreeNode> &nodes,
-                         std::vector<NormalizedElement> &normalizedElements,
-                         float nCellSize) {
+void initPositionAndSize(
+     std::vector<TreeNode> &nodes,
+     std::vector<NormalizedElement> &normalizedElements,
+     float nCellSize) {
   for (TreeNode &node : nodes) {
     NormalizedElement nElement = {};
     nElement.id = node.id;
@@ -337,8 +364,9 @@ void initPositionAndSize(std::vector<TreeNode> &nodes,
   }
 }
 
-void initConnections(std::vector<TreeNode> &nodes,
-                     std::vector<NormalizedElement> &normalizedElements) {
+void initConnections(
+     std::vector<TreeNode> &nodes,
+     std::vector<NormalizedElement> &normalizedElements) {
   int countConnections = 0;
   for (int i = 0; i < nodes.size(); i++) {
     for (int &succId : nodes[i].succ) {
@@ -351,8 +379,8 @@ void initConnections(std::vector<TreeNode> &nodes,
       NormalizedPoint nPointStart = {};
       nPointStart.nX = normalizedElements[i].nPoint.nX +
                        normalizedElements[i].nW / GetMiddle;
-      nPointStart.nY =
-          normalizedElements[i].nPoint.nY + normalizedElements[i].nH;
+      nPointStart.nY = normalizedElements[i].nPoint.nY +
+                       normalizedElements[i].nH;
 
       NormalizedPoint nPointEnd = {};
       nPointEnd.nX = normalizedElements[succId].nPoint.nX +
@@ -370,7 +398,7 @@ void initConnections(std::vector<TreeNode> &nodes,
 }
 
 void Net::netTreeNodesToNormalizedElements(
-    std::vector<NormalizedElement> &normalizedElements) {
+     std::vector<NormalizedElement> &normalizedElements) {
   float maxNumber = -1, maxLayer = -1;
   for (TreeNode &node : nodes) {
     if (node.layer > maxLayer) {
