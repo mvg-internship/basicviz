@@ -26,13 +26,11 @@ float backwardRankDefinition(TreeNode node, int nodeIndex, int portIndex) {
 }
 
 void sortNodes(Net &net, std::vector<TreeNode::nodeId> &layer) {
-  for (int i = 0; i < layer.size() - 1; ++i) {
-    for (int j = 0; j < layer.size() - i - 1; ++j) {
-      if (net.getNode(layer[j])->barycentricValue > net.getNode(layer[j + 1])->barycentricValue) {
-        std::swap(net.getNode(layer[j])->number, net.getNode(layer[j + 1])->number);
-        std::swap(layer[j], layer[j + 1]);
-      }
-    }
+  std::sort(layer.begin(), layer.end(), [&net](const auto& x, const auto& y) -> bool {
+    return net.getNode(x)->barycentricValue < net.getNode(y)->barycentricValue;
+  });
+  for (int i = 0; i < layer.size(); ++i) {
+    net.getNode(layer[i])->number = i;
   }
 }
 
