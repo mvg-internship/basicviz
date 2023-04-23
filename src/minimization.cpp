@@ -67,17 +67,14 @@ std::vector<std::vector<TreeNode::nodeId>> Net::getNodesByLayer() {
     return nodesByLayer;
 }
 
-int getPortIndex(TreeNode::nodeId id, TreeNode node, bool forwardLayerSweep) {
-    if (forwardLayerSweep) {
-        for (int i = 0; i < node.succ.size(); ++i) {
-            if (node.succ[i] == id)
-                return i;
-        }
-    } else {
-        for (int i = 0; i < node.pred.size(); ++i) {
-            if (node.pred[i] == id)
-                return i;
-        }
+int getPortIndex(TreeNode::nodeId id, TreeNode node) {
+    for (int i = 0; i < node.succ.size(); ++i) {
+        if (node.succ[i] == id)
+            return i;
+    }
+    for (int i = 0; i < node.pred.size(); ++i) {
+        if (node.pred[i] == id)
+            return i;
     }
 }
 
@@ -133,7 +130,7 @@ void sortPorts(Net &net, std::vector<std::vector<TreeNode::nodeId>> &nodesByLaye
             std::vector<float> bPred;
             for (int k = 0; k < node->pred.size(); ++k) {
                 int index = net.getNode(node->pred[k])->number;
-                int portIndex = getPortIndex(node->id, *net.getNode(node->pred[k]), true);
+                int portIndex = getPortIndex(node->id, *net.getNode(node->pred[k]));
                 bPred.push_back(rankDefinition( *net.getNode(node->pred[k]), index, portIndex, true) /
                         float(node->succ.size() + node->pred.size()));
             }
@@ -156,7 +153,7 @@ void sortPorts(Net &net, std::vector<std::vector<TreeNode::nodeId>> &nodesByLaye
                 continue;
             for (int k = 0; k < node->succ.size(); ++k) {
                 int index = net.getNode(node->succ[k])->number;
-                int portIndex = getPortIndex(node->id, *net.getNode(node->succ[k]), false);
+                int portIndex = getPortIndex(node->id, *net.getNode(node->succ[k]));
                 bSucc.push_back(rankDefinition( *net.getNode(node->succ[k]), index, portIndex, false) /
                         float(node->succ.size() + node->pred.size()));
             }
@@ -186,7 +183,7 @@ void layerSweepAlgorithm(Net &net) {
                 float rank = 0;
                 for (int k = 0; k < node->pred.size(); ++k) {
                     int index = net.getNode(node->pred[k])->number;
-                    int portIndex = getPortIndex(node->id, *net.getNode(node->pred[k]), true);
+                    int portIndex = getPortIndex(node->id, *net.getNode(node->pred[k]));
                     rank += rankDefinition( *net.getNode(node->pred[k]), index, portIndex, true);
                 }
                 node->barycentricValue = rank / float(node->pred.size());
@@ -209,7 +206,7 @@ void layerSweepAlgorithm(Net &net) {
                 float rank = 0;
                 for (int z = 0; z < node->succ.size(); ++z) {
                     int index = net.getNode(node->succ[z])->number;
-                    int portIndex = getPortIndex(node->id, *net.getNode(node->succ[z]), false);
+                    int portIndex = getPortIndex(node->id, *net.getNode(node->succ[z]));
                     rank += rankDefinition( *net.getNode(node->succ[z]), index, portIndex, false);
                 }
                 node->barycentricValue = rank / float(node->succ.size());
