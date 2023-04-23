@@ -69,38 +69,28 @@ int getPortIndex(TreeNode::nodeId id, TreeNode node) {
 int crossCounting(Net &net, std::vector<std::vector<TreeNode::nodeId>> &tempNodesByLayer) {
   int crossNum = 0;
   for (int i = 1; i < tempNodesByLayer.size(); ++i) {
-    std::vector<std::vector<int>> edges;
+    std::vector<std::pair<int, int>> edges;
     for (int j = 0; j < tempNodesByLayer[i].size(); ++j) {
       TreeNode node = *net.getNode(tempNodesByLayer[i][j]);
-      for (int k = 0; k < node.pred.size(); ++k) {
-        if (net.getNode(node.pred[k])->layer > node.layer)
+      for (TreeNode::nodeId &predecessor : node.pred) {
+        TreeNode *predecessorNode = net.getNode(predecessor);
+        if (predecessorNode->layer > node.layer)
           continue;
-        std::vector<int> temp(3);
-        temp[0] = net.getNode(node.pred[k])->number;
-        temp[1] = j;
-        edges.push_back(temp);
+        edges.emplace_back(predecessorNode->number, j);
       }
-      for (int k = 0; k < node.succ.size(); ++k) {
-        if (net.getNode(node.succ[k])->layer > node.layer)
+      for (TreeNode::nodeId &successor : node.succ) {
+        TreeNode *successorNode = net.getNode(successor);
+        if (successorNode->layer > node.layer)
           continue;
-        std::vector<int> temp(3);
-        temp[0] = net.getNode(node.succ[k])->number;
-        temp[1] = j;
-        edges.push_back(temp);
+        edges.emplace_back(successorNode->number, j);
       }
     }
-
+    std::sort(edges.begin(), edges.end());
     for (int j = 0; j < edges.size() - 1; ++j) {
       for (int k = 0; k < edges.size() - 1; ++k) {
-        if (edges[k][0] > edges[k + 1][0])
+        if (edges[k].second > edges[k + 1].second) {
           std::swap(edges[k], edges[k + 1]);
-      }
-    }
-    for (int j = 0; j < edges.size() - 1; ++j) {
-      for (int k = 0; k < edges.size() - 1; ++k) {
-        if (edges[k][1] > edges[k + 1][1]) {
-          std::swap(edges[k][1], edges[k + 1][1]);
-            crossNum += 1;
+          crossNum += 1;
         }
       }
     }
