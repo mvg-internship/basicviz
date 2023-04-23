@@ -140,33 +140,28 @@ void sortPorts(Net& net, std::vector<std::vector<TreeNode::nodeId>>& nodesByLaye
   }
 }
 
+int totalRankForFixLayer(Net &net, std::vector<TreeNode::nodeId> &vec, TreeNode *node, int increment, int &connectionsToAdjacentLayer){
+  int rank = 0;
+  for (int k = 0; k < vec.size(); ++k) {
+    if (net.getNode(vec[k])->layer + increment != node->layer)
+      continue;
+    connectionsToAdjacentLayer += 1;
+    int index = net.getNode(vec[k])->number;
+    int portIndex = getPortIndex(node->id, *net.getNode(vec[k]));
+    if (increment == 1) {
+      rank += forwardRankDefinition( *net.getNode(vec[k]), index, portIndex);
+    } else {
+      rank += backwardRankDefinition( *net.getNode(vec[k]), index, portIndex);
+    }
+  }
+  return rank;
+}
+
 void barycentricValueDefinition(Net &net, TreeNode *node, int increment) {
   int connectionsToAdjacentLayer = 0;
   float rank = 0;
-  for (int k = 0; k < node->pred.size(); ++k) {
-    if (net.getNode(node->pred[k])->layer + increment != node->layer)
-      continue;
-    connectionsToAdjacentLayer += 1;
-    int index = net.getNode(node->pred[k])->number;
-    int portIndex = getPortIndex(node->id, * net.getNode(node->pred[k]));
-    if (increment == 1) {
-      rank += forwardRankDefinition( *net.getNode(node->pred[k]), index, portIndex);
-    } else {
-      rank += backwardRankDefinition( *net.getNode(node->pred[k]), index, portIndex);
-    }
-  }
-  for (int k = 0; k < node->succ.size(); ++k) {
-    if (net.getNode(node->succ[k])->layer + increment != node->layer)
-      continue;
-    connectionsToAdjacentLayer += 1;
-    int index = net.getNode(node->succ[k])->number;
-    int portIndex = getPortIndex(node->id, *net.getNode(node->succ[k]));
-    if (increment == 1) {
-      rank += forwardRankDefinition( *net.getNode(node->pred[k]), index, portIndex);
-    } else {
-      rank += backwardRankDefinition( *net.getNode(node->succ[k]), index, portIndex);
-    }
-  }
+  rank += totalRankForFixLayer(net, node->pred, node, increment,connectionsToAdjacentLayer);
+  rank += totalRankForFixLayer(net, node->succ, node, increment,connectionsToAdjacentLayer);
   node->barycentricValue = rank / connectionsToAdjacentLayer;
 }
 
