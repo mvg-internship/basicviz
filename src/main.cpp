@@ -59,6 +59,7 @@ const float mouseWheelScalingFactor = 0.1f;
 const std::string printCompactMode = "--compact";
 const std::string printDefaultMode = "--default";
 const std::string parseRawMode = "--raw";
+const std::string drawColorsMode = "--colors";
 
 float normalizedToScreenX(const float nX, const int screenW) {
   return nX * screenW;
@@ -272,30 +273,38 @@ void convertNormToScreen(
 
 void drawFrame(
     SDL_Renderer *renderer,
-    const std::vector<Element> &elementsToDraw) {
+    const std::vector<Element> &elementsToDraw,
+    bool drawColor) {
   drawBackground(renderer);
 
+  SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+
   for (const Element &elementToDraw : elementsToDraw) {
-    SDL_SetRenderDrawColor(renderer,
+    if (drawColor) {
+      SDL_SetRenderDrawColor(renderer,
         elementToDraw.fillColor.r,
         elementToDraw.fillColor.g,
         elementToDraw.fillColor.b,
         SDL_ALPHA_OPAQUE);
-    SDL_RenderFillRectF(renderer, &elementToDraw.scrRect);
+      SDL_RenderFillRectF(renderer, &elementToDraw.scrRect);
 
-    SDL_SetRenderDrawColor(renderer,
+      SDL_SetRenderDrawColor(renderer,
         elementToDraw.outlineColor.r,
         elementToDraw.outlineColor.g,
         elementToDraw.outlineColor.b,
         SDL_ALPHA_OPAQUE);
+    }
+    
     SDL_RenderDrawRectF(renderer, &elementToDraw.scrRect);
 
     for (const Connection &connectionToDraw : elementToDraw.connections) {
-      SDL_SetRenderDrawColor(renderer,
-        connectionToDraw.color.r,
-        connectionToDraw.color.g,
-        connectionToDraw.color.b,
-        SDL_ALPHA_OPAQUE);
+      if (drawColor) {
+        SDL_SetRenderDrawColor(renderer,
+          connectionToDraw.color.r,
+          connectionToDraw.color.g,
+          connectionToDraw.color.b,
+          SDL_ALPHA_OPAQUE);
+      }
       for (size_t i = 1; i < connectionToDraw.scrVertices.size(); i++) {
         SDL_RenderDrawLineF(renderer,
           connectionToDraw.scrVertices[i - 1].x,
@@ -351,6 +360,13 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  bool drawColors = false;
+  if (argc >= 5) {
+    if (argv[4] == drawColorsMode) {
+      drawColors = true;
+    }
+  }
+
   std::ifstream ifs(argv[1]);
   std::vector<Element> normalizedElements = {};
   if (parseRaw) {
@@ -389,7 +405,7 @@ int main(int argc, char *argv[]) {
       SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
   convertNormToScreen(normalizedElements, screenW, screenH);
-  drawFrame(renderer, normalizedElements);
+  drawFrame(renderer, normalizedElements, drawColors);
 
   // Event loop
   bool isRunning = true;
@@ -415,7 +431,6 @@ int main(int argc, char *argv[]) {
         mouseY2 = 0;
       } else if (isDragging && SDL_GetMouseState(&mouseX2, &mouseY2)) {
         moveViewport(mouseX2 - mouseX1, mouseY2 - mouseY1, normalizedElements);
-        drawFrame(renderer, normalizedElements);
         SDL_GetMouseState(&mouseX1, &mouseY1);
       } else if (event.type == SDL_KEYDOWN) {
         // Keyboard input handler
@@ -430,12 +445,11 @@ int main(int argc, char *argv[]) {
           isRunning = false;
           break;
         }
-        drawFrame(renderer, normalizedElements);
       } else if (event.type == SDL_MOUSEWHEEL) {
         scaleViewport(scaleMouseWheel(event.wheel.y), normalizedElements);
-        drawFrame(renderer, normalizedElements);
       }
     }
+    drawFrame(renderer, normalizedElements, drawColors);
   }
   // Shutdown
   SDL_DestroyWindow(window);
