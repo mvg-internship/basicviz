@@ -41,6 +41,8 @@ const char *const parserY = "y";
 const char *const parserHeight = "height";
 const char *const parserWidth = "width";
 const char *const parserEndElement = "end_element";
+const char *const parserLogicScheme = "logic_scheme";
+const char *const parserElements = "elements";
 
 const float zoomInScalingFactor = 1.1f;
 const float zoomOutScalingFactor = 0.9f;
@@ -48,6 +50,39 @@ const float mouseWheelScalingFactor = 0.1f;
 
 const std::string printCompactMode = "--compact";
 const std::string printDefaultMode = "--default";
+
+struct NormalizedPoint {
+  float nX;
+  float nY;
+
+  NormalizedPoint(): nX(0), nY(0) {}
+};
+
+struct Connection {
+  unsigned int id;
+  unsigned int startElementId;
+  unsigned int endElementId;
+  std::vector<NormalizedPoint> nVertices;
+  std::vector<SDL_FPoint> scrVertices;
+
+  Connection(): id(-1), startElementId(-1), endElementId(-1) {}
+  void normalizedToScreen(const int screenW, const int screenH);
+  void scale(const float scalingFactor, const int mouseX, const int mouseY);
+  void move(const int dx, const int dy);
+};
+
+struct Element {
+  unsigned int id;
+  NormalizedPoint nPoint;
+  float nW, nH;
+  SDL_FRect scrRect;
+  std::vector<Connection> connections;
+
+  Element(): id(-1), nW(0), nH(0) {}
+  void normalizedToScreen(const int screenW, const int screenH);
+  void scale(const float scalingFactor, const int mouseX, const int mouseY);
+  void move(const int dx, const int dy);
+};
 
 float normalizedToScreenX(const float nX, const int screenW) {
   return nX * screenW;
@@ -57,23 +92,23 @@ float normalizedToScreenY(const float nY, const int screenH) {
   return nY * screenH;
 }
 
-void NormalizedElement::move(const int dx, const int dy) {
+void Element::move(const int dx, const int dy) {
   scrRect.x += dx;
   scrRect.y += dy;
 
-  for (NormalizedConnection &connectionToMove : connections) {
+  for (Connection &connectionToMove : connections) {
     connectionToMove.move(dx, dy);
   }
 }
 
-void NormalizedConnection::move(const int dx, const int dy) {
+void Connection::move(const int dx, const int dy) {
   for (SDL_FPoint &vertexToMove : scrVertices) {
     vertexToMove.x += dx;
     vertexToMove.y += dy;
   }
 }
 
-void NormalizedElement::scale(
+void Element::scale(
     const float scalingFactor,
     const int mouseX,
     const int mouseY) {
@@ -82,12 +117,12 @@ void NormalizedElement::scale(
   scrRect.w *= scalingFactor;
   scrRect.h *= scalingFactor;
 
-  for (NormalizedConnection &connectionToScale : connections) {
+  for (Connection &connectionToScale : connections) {
     connectionToScale.scale(scalingFactor, mouseX, mouseY);
   }
 }
 
-void NormalizedConnection::scale(
+void Connection::scale(
     const float scalingFactor,
     const int mouseX,
     const int mouseY) {
@@ -97,7 +132,7 @@ void NormalizedConnection::scale(
   }
 }
 
-void NormalizedConnection::normalizedToScreen(
+void Connection::normalizedToScreen(
     const int screenW,
     const int screenH) {
   for (const NormalizedPoint &nVertex : nVertices) {
@@ -108,7 +143,7 @@ void NormalizedConnection::normalizedToScreen(
   }
 }
 
-void NormalizedElement::normalizedToScreen(
+void Element::normalizedToScreen(
     const int screenW,
     const int screenH) {
   scrRect.x = normalizedToScreenX(nPoint.nX, screenW);
@@ -124,19 +159,19 @@ void drawBackground(SDL_Renderer *renderer) {
 
 int parseInput(
     const char *filename,
-    std::vector<NormalizedElement> &elementsToParse) {
+    std::vector<Element> &elementsToParse) {
   pugi::xml_document file;
   if (!file.load_file(filename)) {
     return PARSER_FAILURE;
   }
 
-  pugi::xml_node elements = file.child("logic_scheme").child("elements");
+  pugi::xml_node elements = file.child(parserLogicScheme).child(parserElements);
 
   // Parsing elements from given file
   for (pugi::xml_node element = elements.first_child();
       element;
       element = element.next_sibling()) {
-    NormalizedElement parsedElement;
+    Element parsedElement;
     parsedElement.id = atoi(element.attribute(parserElementId).value());
     parsedElement.nPoint.nX = std::stof(element.attribute(parserX).value());
     parsedElement.nPoint.nY = std::stof(element.attribute(parserY).value());
@@ -147,7 +182,7 @@ int parseInput(
     for (pugi::xml_node connection = element.first_child();
         connection;
         connection = connection.next_sibling()) {
-      NormalizedConnection parsedConnection;
+      Connection parsedConnection;
       parsedConnection.id = atoi(connection.attribute(parserConnetionId).value());
       parsedConnection.startElementId = parsedElement.id;
       parsedConnection.endElementId = atoi(connection.attribute(parserEndElement).value());
@@ -170,12 +205,12 @@ int parseInput(
 
 std::ostream &operator<<(
     std::ostream &out,
-    const NormalizedElement &elementToPrint) {
+    const Element &elementToPrint) {
   out << "Element id: " << elementToPrint.id
       << " x: " << elementToPrint.nPoint.nX
       << " y: " << elementToPrint.nPoint.nY
       << std::endl;
-  for (const NormalizedConnection &connection : elementToPrint.connections) {
+  for (const Connection &connection : elementToPrint.connections) {
     out << "  Connection id: " << connection.id;
     for (size_t i = 0; i < connection.nVertices.size(); i++) {
       out << " x" << i << ": " << connection.nVertices[i].nX
@@ -188,10 +223,10 @@ std::ostream &operator<<(
 
 void print(
     const std::string &printMode,
-    const std::vector<NormalizedElement> &elementsToPrint) {
+    const std::vector<Element> &elementsToPrint) {
   if (printMode == printCompactMode) {
     size_t connectionsCount = 0;
-    for (const NormalizedElement &element : elementsToPrint) {
+    for (const Element &element : elementsToPrint) {
       connectionsCount += element.connections.size();
     }
     std::cout << "Number of elements: "
@@ -200,21 +235,21 @@ void print(
         << connectionsCount
         << std::endl;
   } else if (printMode == printDefaultMode) {
-    for (const NormalizedElement &element : elementsToPrint) {
+    for (const Element &element : elementsToPrint) {
       std::cout << element;
     }
   }
 }
 
 void convertNormToScreen(
-    std::vector<NormalizedElement> &elementsToConvert,
+    std::vector<Element> &elementsToConvert,
     const int screenW,
     const int screenH) {
   // Converting normalized coordinates to screen
-  for (NormalizedElement &nElem : elementsToConvert) {
+  for (Element &nElem : elementsToConvert) {
     nElem.normalizedToScreen(screenW, screenH);
 
-    for (NormalizedConnection &nConnection : nElem.connections) {
+    for (Connection &nConnection : nElem.connections) {
       nConnection.normalizedToScreen(screenW, screenH);
     }
   }
@@ -222,14 +257,14 @@ void convertNormToScreen(
 
 void drawFrame(
     SDL_Renderer *renderer,
-    const std::vector<NormalizedElement> &elementsToDraw) {
+    const std::vector<Element> &elementsToDraw) {
   drawBackground(renderer);
 
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 
-  for (const NormalizedElement &elementToDraw : elementsToDraw) {
+  for (const Element &elementToDraw : elementsToDraw) {
     SDL_RenderDrawRectF(renderer, &elementToDraw.scrRect);
-    for (const NormalizedConnection &connectionToDraw : elementToDraw.connections) {
+    for (const Connection &connectionToDraw : elementToDraw.connections) {
       for (size_t i = 1; i < connectionToDraw.scrVertices.size(); i++) {
         SDL_RenderDrawLineF(renderer,
           connectionToDraw.scrVertices[i - 1].x,
@@ -244,11 +279,11 @@ void drawFrame(
 
 void scaleViewport(
     const float scalingFactor,
-    std::vector<NormalizedElement> &elementsToScale) {
+    std::vector<Element> &elementsToScale) {
   int mouseX, mouseY;
   SDL_GetMouseState(&mouseX, &mouseY);
 
-  for (NormalizedElement &elementToScale : elementsToScale) {
+  for (Element &elementToScale : elementsToScale) {
     elementToScale.scale(scalingFactor, mouseX, mouseY);
   }
 }
@@ -256,8 +291,8 @@ void scaleViewport(
 void moveViewport(
     const int dx,
     const int dy,
-    std::vector<NormalizedElement> &elementsToScale) {
-  for (NormalizedElement &elementToScale : elementsToScale) {
+    std::vector<Element> &elementsToScale) {
+  for (Element &elementToScale : elementsToScale) {
     elementToScale.move(dx, dy);
   }
 }
@@ -272,7 +307,15 @@ int main(int argc, char *argv[]) {
     std::cerr << statusMessages[FILENAME_NOT_PROVIDED];
     return FILENAME_NOT_PROVIDED;
   }
-    
+
+  std::vector<Element> normalizedElements;
+
+  int code = parseInput(argv[1], normalizedElements);
+  if (code) {
+    std::cerr << statusMessages[code];
+    return code;
+  }
+
   std::string printMode = printDefaultMode;
   if (argc >= 3) {
     printMode = argv[2];
