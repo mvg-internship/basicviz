@@ -91,24 +91,40 @@ std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> getNetEdges(Net &net
 }
 
 int crossCounting(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer,
-        std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> &netEdges) {
-  int crossCount = 0;
+  std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> &netEdges) {
+  int crosscount = 0; /* number of crossings */
   for (int i = 0; i < netEdges.size(); ++i) {
     std::sort(netEdges[i].begin(), netEdges[i].end(), [](const auto & x,
       const auto & y) -> bool {
-      return x.first -> number < y.first -> number;
-    });
-
-    std::sort(netEdges[i].begin(), netEdges[i].end(), [ & crossCount](const auto & x,
-      const auto & y) -> bool {
-      if (x.second -> number < y.second -> number) {
-        ++crossCount;
-        return true;
+      if (x.first->number == y.first->number) {
+        return x.second->number < y.second->number;
+      } else {
+        return x.first->number < y.first->number;
       }
-      return false;
     });
+    int first_leaf_index = 1;
+    int n_edges = netEdges[i].size() * 2;
+    while (first_leaf_index < n_edges) {
+      first_leaf_index *= 2;
+    }
+    int tree_size = 2 * first_leaf_index - 1;
+    first_leaf_index -= 1;
+    int * tree = (int * ) malloc(tree_size * sizeof(int));
+    for (int t = 0; t < tree_size; t++) {
+      tree[t] = 0;
+    }
+    int n_edges_to_insert = netEdges[i].size();
+    for (int k = 0; k < n_edges_to_insert; k++) {
+      int index = netEdges[i][k].second -> number + first_leaf_index;
+      tree[index]++;
+      while (index > 0) {
+        if (index % 2) crosscount += tree[index + 1];
+        index = (index - 1) / 2;
+        tree[index]++;
+      }
+    }
   }
-  return crossCount / 2;
+  return crosscount;
 }
 
 std::vector<std::pair<float, TreeNode::Id>> getBarycentricValueForPorts(Net &net,
