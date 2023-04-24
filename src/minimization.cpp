@@ -157,15 +157,15 @@ void sortPorts(Net &net, std::vector<std::vector<TreeNode::Id>> &nodesByLayer) {
 }
 
 int totalRankForFixLayer(Net &net, std::vector<TreeNode::Id> &vec, TreeNode *node,
-        int increment, int &connectionsToAdjacentLayer) {
+        int direction, int &connectionsToAdjacentLayer) {
   int rank = 0;
   for (int k = 0; k < vec.size(); ++k) {
-    if (net.getNode(vec[k])->layer + increment != node->layer)
+    if (net.getNode(vec[k])->layer + direction != node->layer)
       continue;
     connectionsToAdjacentLayer += 1;
     int index = net.getNode(vec[k])->number;
     int portIndex = getPortIndex(node->id, *net.getNode(vec[k]));
-    if (increment == 1) {
+    if (direction == 1) {
       rank += forwardRankDefinition(*net.getNode(vec[k]), index, portIndex);
     } else {
       rank += backwardRankDefinition(*net.getNode(vec[k]), index, portIndex);
@@ -174,11 +174,11 @@ int totalRankForFixLayer(Net &net, std::vector<TreeNode::Id> &vec, TreeNode *nod
   return rank;
 }
 
-void barycentricValueDefinition(Net &net, TreeNode *node, int increment) {
+void barycentricValueDefinition(Net &net, TreeNode *node, int direction) {
   int connectionsToAdjacentLayer = 0;
   float rank = 0;
-  rank += totalRankForFixLayer(net, node->pred, node, increment, connectionsToAdjacentLayer);
-  rank += totalRankForFixLayer(net, node->succ, node, increment, connectionsToAdjacentLayer);
+  rank += totalRankForFixLayer(net, node->pred, node, direction, connectionsToAdjacentLayer);
+  rank += totalRankForFixLayer(net, node->succ, node, direction, connectionsToAdjacentLayer);
   node->barycentricValue = rank / connectionsToAdjacentLayer;
 }
 
@@ -195,6 +195,15 @@ bool stopAlgorithm(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesBy
   }
 }
 
+void doLayerSweeps(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer, int direction) {
+  for (int i = direction == 1 ? 1 : tempNodesByLayer.size() - 2; direction == 1 ? i < tempNodesByLayer.size() : i >= 0; i += direction) {
+    for (int j = 0; j < tempNodesByLayer[i].size(); ++j) {
+      barycentricValueDefinition(net, net.getNode(tempNodesByLayer[i][j]), direction);
+    }
+    sortNodes(net, tempNodesByLayer[i]);
+  }
+}
+
 void layerSweepAlgorithm(Net &net) {
   std::vector<std::vector<TreeNode::Id>> nodesByLayer = net.getNodesByLayer();
   std::vector<std::vector<TreeNode::Id>> tempNodesByLayer(nodesByLayer.size());
@@ -204,22 +213,12 @@ void layerSweepAlgorithm(Net &net) {
   int intersections = -1;
   while (true) {
     //            forward layer sweeps
-    for (int i = 1; i < tempNodesByLayer.size(); ++i) {
-      for (int j = 0; j < tempNodesByLayer[i].size(); ++j) {
-        barycentricValueDefinition(net, net.getNode(tempNodesByLayer[i][j]), 1);
-      }
-      sortNodes(net, tempNodesByLayer[i]);
-    }
+    doLayerSweeps(net, tempNodesByLayer, 1);
     if (stopAlgorithm(net, tempNodesByLayer, intersections, nodesByLayer, netEdges))
       break;
 
     //            backwards layer sweeps
-    for (int i = tempNodesByLayer.size() - 2; i >= 0; i--) {
-      for (int j = 0; j < tempNodesByLayer[i].size(); ++j) {
-        barycentricValueDefinition(net, net.getNode(tempNodesByLayer[i][j]), -1);
-      }
-      sortNodes(net, tempNodesByLayer[i]);
-    }
+    doLayerSweeps(net, tempNodesByLayer, -1);
     if (stopAlgorithm(net, tempNodesByLayer, intersections, nodesByLayer, netEdges))
       break;
   }
