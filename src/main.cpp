@@ -22,7 +22,7 @@
 enum StatusCode {
   SUCCESS = 0,
   FILENAME_NOT_PROVIDED,
-  PARSER_FAILURE,
+  RAW_PARSER_FAILURE,
   SDL_INIT_FAILURE,
   BENCH_READER_ERROR
 };
@@ -30,12 +30,13 @@ enum StatusCode {
 const char *statusMessages[] = {
     "Success\n",
     "Filename was not provided\n",
-    "Parser failure\n",
-    "SDL could not be initialized\n"
+    "Raw parser failure\n",
+    "SDL could not be initialized\n",
+    "Becnh reader error\n"
 };
 
 const char *const parserElementId = "e_id";
-const char *const parserConnetionId = "c_id";
+const char *const parserConnectionId = "c_id";
 const char *const parserX = "x";
 const char *const parserY = "y";
 const char *const parserHeight = "height";
@@ -43,6 +44,7 @@ const char *const parserWidth = "width";
 const char *const parserEndElement = "end_element";
 const char *const parserLogicScheme = "logic_scheme";
 const char *const parserElements = "elements";
+const char *const parserConnections = "connections";
 const char *const parserOutlineColor = "outline_color";
 const char *const parserFillColor = "fill_color";
 const char *const parserColor = "color";
@@ -56,42 +58,43 @@ const float mouseWheelScalingFactor = 0.1f;
 
 const std::string printCompactMode = "--compact";
 const std::string printDefaultMode = "--default";
+const std::string parseRawMode = "--raw";
 
-struct NormalizedPoint {
-  float nX;
-  float nY;
+// struct NormalizedPoint {
+//   float nX;
+//   float nY;
 
-  NormalizedPoint(): nX(0), nY(0) {}
-};
+//   NormalizedPoint(): nX(0), nY(0) {}
+// };
 
-struct Connection {
-  unsigned int id;
-  unsigned int startElementId;
-  unsigned int endElementId;
-  SDL_Color color;
-  std::vector<NormalizedPoint> nVertices;
-  std::vector<SDL_FPoint> scrVertices;
+// struct Connection {
+//   unsigned int id;
+//   unsigned int startElementId;
+//   unsigned int endElementId;
+//   SDL_Color color;
+//   std::vector<NormalizedPoint> nVertices;
+//   std::vector<SDL_FPoint> scrVertices;
 
-  Connection(): id(-1), startElementId(-1), endElementId(-1) {}
-  void normalizedToScreen(const int screenW, const int screenH);
-  void scale(const float scalingFactor, const int mouseX, const int mouseY);
-  void move(const int dx, const int dy);
-};
+//   Connection(): id(-1), startElementId(-1), endElementId(-1) {}
+//   void normalizedToScreen(const int screenW, const int screenH);
+//   void scale(const float scalingFactor, const int mouseX, const int mouseY);
+//   void move(const int dx, const int dy);
+// };
 
-struct Element {
-  unsigned int id;
-  NormalizedPoint nPoint;
-  float nW, nH;
-  SDL_FRect scrRect;
-  SDL_Color outlineColor;
-  SDL_Color fillColor;
-  std::vector<Connection> connections;
+// struct Element {
+//   unsigned int id;
+//   NormalizedPoint nPoint;
+//   float nW, nH;
+//   SDL_FRect scrRect;
+//   SDL_Color outlineColor;
+//   SDL_Color fillColor;
+//   std::vector<Connection> connections;
 
-  Element(): id(-1), nW(0), nH(0) {}
-  void normalizedToScreen(const int screenW, const int screenH);
-  void scale(const float scalingFactor, const int mouseX, const int mouseY);
-  void move(const int dx, const int dy);
-};
+//   Element(): id(-1), nW(0), nH(0) {}
+//   void normalizedToScreen(const int screenW, const int screenH);
+//   void scale(const float scalingFactor, const int mouseX, const int mouseY);
+//   void move(const int dx, const int dy);
+// };
 
 float normalizedToScreenX(const float nX, const int screenW) {
   return nX * screenW;
@@ -167,11 +170,11 @@ void drawBackground(SDL_Renderer *renderer) {
 }
 
 int parseInput(
-    const char *filename,
+    std::istream &stream,
     std::vector<Element> &elementsToParse) {
   pugi::xml_document file;
-  if (!file.load_file(filename)) {
-    return PARSER_FAILURE;
+  if (!file.load(stream)) {
+    return RAW_PARSER_FAILURE;
   }
 
   pugi::xml_node elements = file.child(parserLogicScheme).child(parserElements);
@@ -213,11 +216,12 @@ int parseInput(
       parsedElement.fillColor.b = 0;
     }
     // Parsing connections for given element
-    for (pugi::xml_node connection = element.first_child();
+    pugi::xml_node connections = element.child(parserConnections);
+    for (pugi::xml_node connection = connections.first_child();
         connection;
         connection = connection.next_sibling()) {
       Connection parsedConnection;
-      parsedConnection.id = atoi(connection.attribute(parserConnetionId).value());
+      parsedConnection.id = atoi(connection.attribute(parserConnectionId).value());
       parsedConnection.startElementId = parsedElement.id;
       parsedConnection.endElementId = atoi(connection.attribute(parserEndElement).value());
 
@@ -370,36 +374,42 @@ int main(int argc, char *argv[]) {
     std::cerr << statusMessages[FILENAME_NOT_PROVIDED];
     return FILENAME_NOT_PROVIDED;
   }
-
-  std::vector<Element> normalizedElements;
-
-  int code = parseInput(argv[1], normalizedElements);
-  if (code) {
-    std::cerr << statusMessages[code];
-    return code;
-  }
-
+  
   std::string printMode = printDefaultMode;
   if (argc >= 3) {
     printMode = argv[2];
   }
-    
-  Net net = {};
-  std::ifstream ifs(argv[1]);
-  if (!readNetFromBench(ifs, net)) {
-    return BENCH_READER_ERROR;
+
+  bool parseRaw = false;
+  if (argc >= 4) {
+    if (argv[3] == parseRawMode) {
+      parseRaw = true;
+    }
   }
 
-  net.assignLayers();
-  minimizeIntersections(net);
-  std::vector<NormalizedElement> normalizedElements = {};
-  net.netTreeNodesToNormalizedElements(normalizedElements);
-    
+  std::ifstream ifs(argv[1]);
+  std::vector<Element> normalizedElements = {};
+  if (parseRaw) {
+    if (parseInput(ifs, normalizedElements)) {
+      std::cerr << statusMessages[RAW_PARSER_FAILURE];
+      return RAW_PARSER_FAILURE;
+    }
+  } else {
+    Net net = {};
+    if (!readNetFromBench(ifs, net)) {
+      std::cerr << statusMessages[BENCH_READER_ERROR];
+      return BENCH_READER_ERROR;
+    }
+    net.assignLayers();
+    net.netTreeNodesToNormalizedElements(normalizedElements);
+  }
   // Prepare draw data and draw
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     std::cerr << statusMessages[SDL_INIT_FAILURE];
     return SDL_INIT_FAILURE;
   }
+
+  print(printMode, normalizedElements);
 
   std::cout << statusMessages[SUCCESS];
 

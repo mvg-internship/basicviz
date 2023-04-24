@@ -363,10 +363,10 @@ enum {
 
 void initPositionAndSize(
     std::vector<TreeNode> &nodes,
-    std::vector<NormalizedElement> &normalizedElements,
+    std::vector<Element> &normalizedElements,
     float nCellSize) {
   for (TreeNode &node : nodes) {
-    NormalizedElement nElement = {};
+    Element nElement = {};
     nElement.id = node.id;
 
     if (node.isDummy) {
@@ -395,11 +395,11 @@ void initPositionAndSize(
 
 void initConnections(
     std::vector<TreeNode> &nodes,
-    std::vector<NormalizedElement> &normalizedElements) {
+    std::vector<Element> &normalizedElements) {
   int countConnections = 0;
   for (size_t i = 0; i < nodes.size(); i++) {
     for (size_t &succId : nodes[i].succ) {
-      NormalizedConnection connection = {};
+      Connection connection = {};
 
       connection.id = countConnections;
       connection.startElementId = nodes[i].id;
@@ -427,7 +427,7 @@ void initConnections(
 }
 
 void Net::netTreeNodesToNormalizedElements(
-    std::vector<NormalizedElement> &normalizedElements) {
+    std::vector<Element> &normalizedElements) {
   float maxNumber = -1, maxLayer = -1;
   for (TreeNode &node : nodes) {
     if (node.layer > maxLayer) {

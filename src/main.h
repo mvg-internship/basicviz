@@ -18,27 +18,35 @@ struct NormalizedPoint {
   NormalizedPoint(): nX(0), nY(0) {}
 };
 
-struct NormalizedConnection {
+struct Connection {
   unsigned int id;
   unsigned int startElementId;
   unsigned int endElementId;
+  SDL_Color color;
   std::vector<NormalizedPoint> nVertices;
   std::vector<SDL_FPoint> scrVertices;
 
-  NormalizedConnection(): id(-1), startElementId(-1), endElementId(-1) {}
+  Connection(): id(-1), startElementId(-1), endElementId(-1) {
+    color = {255, 255, 255, 255};
+  }
   void normalizedToScreen(const int screenW, const int screenH);
   void scale(const float scalingFactor, const int mouseX, const int mouseY);
   void move(const int dx, const int dy);
 };
 
-struct NormalizedElement {
+struct Element {
   unsigned int id;
   NormalizedPoint nPoint;
   float nW, nH;
   SDL_FRect scrRect;
-  std::vector<NormalizedConnection> connections;
+  SDL_Color outlineColor;
+  SDL_Color fillColor;
+  std::vector<Connection> connections;
 
-  NormalizedElement(): id(-1), nW(0), nH(0) {}
+  Element(): id(-1), nW(0), nH(0) {
+    outlineColor = {255, 255, 255, 255};
+    fillColor = {0, 0, 0, 255};
+  }
   void normalizedToScreen(const int screenW, const int screenH);
   void scale(const float scalingFactor, const int mouseX, const int mouseY);
   void move(const int dx, const int dy);
