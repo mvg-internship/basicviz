@@ -43,6 +43,12 @@ const char *const parserWidth = "width";
 const char *const parserEndElement = "end_element";
 const char *const parserLogicScheme = "logic_scheme";
 const char *const parserElements = "elements";
+const char *const parserOutlineColor = "outline_color";
+const char *const parserFillColor = "fill_color";
+const char *const parserColor = "color";
+const char *const parserR = "r";
+const char *const parserG = "g";
+const char *const parserB = "b";
 
 const float zoomInScalingFactor = 1.1f;
 const float zoomOutScalingFactor = 0.9f;
@@ -62,6 +68,7 @@ struct Connection {
   unsigned int id;
   unsigned int startElementId;
   unsigned int endElementId;
+  SDL_Color color;
   std::vector<NormalizedPoint> nVertices;
   std::vector<SDL_FPoint> scrVertices;
 
@@ -76,6 +83,8 @@ struct Element {
   NormalizedPoint nPoint;
   float nW, nH;
   SDL_FRect scrRect;
+  SDL_Color outlineColor;
+  SDL_Color fillColor;
   std::vector<Connection> connections;
 
   Element(): id(-1), nW(0), nH(0) {}
@@ -178,6 +187,31 @@ int parseInput(
     parsedElement.nH = std::stof(element.attribute(parserHeight).value());
     parsedElement.nW = std::stof(element.attribute(parserWidth).value());
 
+    // Reading outline color from the document and if there is not one detected
+    // Defaults to white RGB(255, 255, 255)
+    pugi::xml_node outlineColor = element.child(parserOutlineColor);
+    if (outlineColor) {
+      parsedElement.outlineColor.r = outlineColor.attribute(parserR).as_int();
+      parsedElement.outlineColor.g = outlineColor.attribute(parserG).as_int();
+      parsedElement.outlineColor.b = outlineColor.attribute(parserB).as_int();
+    }
+    else {
+      parsedElement.outlineColor.r = 255;
+      parsedElement.outlineColor.g = 255;
+      parsedElement.outlineColor.b = 255;
+    }
+    // Reading fill color from the document and if there is not one detected
+    // Defaults to black RGB(0, 0, 0)
+    pugi::xml_node fillColor = element.child(parserFillColor);
+    if (fillColor) {
+      parsedElement.fillColor.r = fillColor.attribute(parserR).as_int();
+      parsedElement.fillColor.g = fillColor.attribute(parserG).as_int();
+      parsedElement.fillColor.b = fillColor.attribute(parserB).as_int();
+    } else {
+      parsedElement.fillColor.r = 0;
+      parsedElement.fillColor.g = 0;
+      parsedElement.fillColor.b = 0;
+    }
     // Parsing connections for given element
     for (pugi::xml_node connection = element.first_child();
         connection;
@@ -187,8 +221,21 @@ int parseInput(
       parsedConnection.startElementId = parsedElement.id;
       parsedConnection.endElementId = atoi(connection.attribute(parserEndElement).value());
 
+      // Reading color from the document and if there is not one detected
+      // Defaults to white RGB(255, 255, 255)
+      pugi::xml_node color = connection.child(parserColor);
+      if (color) {
+        parsedConnection.color.r = color.attribute(parserR).as_int();
+        parsedConnection.color.g = color.attribute(parserG).as_int();
+        parsedConnection.color.b = color.attribute(parserB).as_int();
+      } else {
+        parsedConnection.color.r = 255;
+        parsedConnection.color.g = 255;
+        parsedConnection.color.b = 255;
+      }
       // Parsing nVertices for given connection
-      for (pugi::xml_node vertex = connection.first_child();
+      pugi::xml_node vertices = connection.child("vertices");
+      for (pugi::xml_node vertex = vertices.first_child();
           vertex;
           vertex = vertex.next_sibling()) {
         NormalizedPoint parsedVertex;
@@ -260,11 +307,27 @@ void drawFrame(
     const std::vector<Element> &elementsToDraw) {
   drawBackground(renderer);
 
-  SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-
   for (const Element &elementToDraw : elementsToDraw) {
+    SDL_SetRenderDrawColor(renderer,
+        elementToDraw.fillColor.r,
+        elementToDraw.fillColor.g,
+        elementToDraw.fillColor.b,
+        SDL_ALPHA_OPAQUE);
+    SDL_RenderFillRectF(renderer, &elementToDraw.scrRect);
+
+    SDL_SetRenderDrawColor(renderer,
+        elementToDraw.outlineColor.r,
+        elementToDraw.outlineColor.g,
+        elementToDraw.outlineColor.b,
+        SDL_ALPHA_OPAQUE);
     SDL_RenderDrawRectF(renderer, &elementToDraw.scrRect);
+
     for (const Connection &connectionToDraw : elementToDraw.connections) {
+      SDL_SetRenderDrawColor(renderer,
+        connectionToDraw.color.r,
+        connectionToDraw.color.g,
+        connectionToDraw.color.b,
+        SDL_ALPHA_OPAQUE);
       for (size_t i = 1; i < connectionToDraw.scrVertices.size(); i++) {
         SDL_RenderDrawLineF(renderer,
           connectionToDraw.scrVertices[i - 1].x,

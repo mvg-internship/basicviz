@@ -4,30 +4,46 @@
     <element e_id="0" x="0.0" y="0.0" height="0.4" width="0.4">
       <!--Element may have connections-->
       <!--Every connection has id and id of element it goes into-->
+      <!--Element has to have outline color and fill color of represented geometric shape-->
+      <!--If not set, outline color defaults to white RGB(255, 255, 255)-->
+      <!--If not set, fill color defaults to black RGB(0, 0, 0)-->
+      <outline_color r="255" g="255" b="255"/>
+      <fill_color r="0" g="0" b="0"/>
       <connection c_id="0" end_element="2">
         <!--Connection has to have start and end points and may have another vertices. It is obligatory to declare start_point as the first child and end_point as the last child-->
-        <!--Start and end points along with vertices have x and y coordinates as their attributes-->
-        <start_point x="0.4" y="0.2"/>
-        <vertex x="0.5" y="0.3"/>
-        <end_point x="0.6" y="0.2"/>
+        <!--Start and end points along with vertices have x and y coordinates as their attributes and are set in <vertices>-->
+        <!--As connection is represented as polyline it has to have color-->
+        <!--If not set, color defaults to white RGB(255, 255, 255)-->
+        <color r="255" g="255" b="255"/>
+        <vertices>
+          <start_point x="0.4" y="0.2"/>
+          <vertex x="0.5" y="0.3"/>
+          <end_point x="0.6" y="0.2"/>
+        </vertices>
       </connection>
       <connection c_id="1" end_element="3">
-        <start_point x="0.2" y="0.4"/>
-        <vertex x="0.25" y="0.5"/>
-        <vertex x="0.35" y="0.55"/>
-        <end_point x="0.2" y="0.6"/>
+        <vertices>
+          <start_point x="0.2" y="0.4"/>
+          <vertex x="0.25" y="0.5"/>
+          <vertex x="0.35" y="0.55"/>
+          <end_point x="0.2" y="0.6"/>
+        </vertices>
       </connection>
     </element>
     <element e_id="1" x="0.6" y="0.0" height="0.4" width="0.4">
       <connection c_id="2" end_element="4">
-        <start_point x="0.8" y="0.4"/>
-        <end_point x="0.8" y="0.6"/>
+        <vertices>
+          <start_point x="0.8" y="0.4"/>
+          <end_point x="0.8" y="0.6"/>
+        </vertices>
       </connection>
     </element>
     <element e_id="2" x="0.0" y="0.6" height="0.4" width="0.4">
       <connection c_id="3" end_element="4">
-        <start_point x="0.4" y="0.8"/>
-        <end_point x="0.6" y="0.8"/>
+        <vertex>
+          <start_point x="0.4" y="0.8"/>
+          <end_point x="0.6" y="0.8"/>
+        </vertex>
       </connection>
     </element>
     <element e_id="3" x="0.6" y="0.6" height="0.4" width="0.4">
