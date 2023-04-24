@@ -60,42 +60,6 @@ const std::string printCompactMode = "--compact";
 const std::string printDefaultMode = "--default";
 const std::string parseRawMode = "--raw";
 
-// struct NormalizedPoint {
-//   float nX;
-//   float nY;
-
-//   NormalizedPoint(): nX(0), nY(0) {}
-// };
-
-// struct Connection {
-//   unsigned int id;
-//   unsigned int startElementId;
-//   unsigned int endElementId;
-//   SDL_Color color;
-//   std::vector<NormalizedPoint> nVertices;
-//   std::vector<SDL_FPoint> scrVertices;
-
-//   Connection(): id(-1), startElementId(-1), endElementId(-1) {}
-//   void normalizedToScreen(const int screenW, const int screenH);
-//   void scale(const float scalingFactor, const int mouseX, const int mouseY);
-//   void move(const int dx, const int dy);
-// };
-
-// struct Element {
-//   unsigned int id;
-//   NormalizedPoint nPoint;
-//   float nW, nH;
-//   SDL_FRect scrRect;
-//   SDL_Color outlineColor;
-//   SDL_Color fillColor;
-//   std::vector<Connection> connections;
-
-//   Element(): id(-1), nW(0), nH(0) {}
-//   void normalizedToScreen(const int screenW, const int screenH);
-//   void scale(const float scalingFactor, const int mouseX, const int mouseY);
-//   void move(const int dx, const int dy);
-// };
-
 float normalizedToScreenX(const float nX, const int screenW) {
   return nX * screenW;
 }
