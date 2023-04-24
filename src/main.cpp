@@ -32,7 +32,7 @@ const char *statusMessages[] = {
     "Filename was not provided\n",
     "Raw parser failure\n",
     "SDL could not be initialized\n",
-    "Becnh reader error\n"
+    "Bench reader error\n"
 };
 
 const char *const parserElementId = "e_id";
