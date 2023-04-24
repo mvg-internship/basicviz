@@ -25,7 +25,7 @@ float backwardRankDefinition(TreeNode &node, int nodeIndex, int portIndex) {
   return nodeIndex + portOrderValue / (node.pred.size() + 1);
 }
 
-void sortNodes(Net &net, std::vector<TreeNode::nodeId> &layer) {
+void sortNodes(Net &net, std::vector<TreeNode::Id> &layer) {
   std::sort(layer.begin(), layer.end(), [&net](const auto &x,
     const auto &y) -> bool {
     return net.getNode(x)->barycentricValue < net.getNode(y)->barycentricValue;
@@ -44,18 +44,18 @@ int getAmountOfLayers(std::vector<TreeNode> &nodes) {
   return amountOfLayers;
 }
 
-std::vector<std::vector<TreeNode::nodeId>>Net::getNodesByLayer() {
+std::vector<std::vector<TreeNode::Id>>Net::getNodesByLayer() {
   int amountOfLayers = getAmountOfLayers(nodes);
-  std::vector<std::vector<TreeNode::nodeId>> nodesByLayer(amountOfLayers + 1);
+  std::vector<std::vector<TreeNode::Id>> nodesByLayer(amountOfLayers + 1);
   for (TreeNode &node: nodes) {
-    std::vector<TreeNode::nodeId> &layer = nodesByLayer[node.layer];
+    std::vector<TreeNode::Id> &layer = nodesByLayer[node.layer];
     layer.push_back(node.id);
     node.number = layer.size() - 1;
   }
   return nodesByLayer;
 }
 
-int getPortIndex(TreeNode::nodeId id, TreeNode &node) {
+int getPortIndex(TreeNode::Id id, TreeNode &node) {
   for (int i = 0; i < node.succ.size(); ++i) {
     if (node.succ[i] == id)
       return i;
@@ -66,42 +66,55 @@ int getPortIndex(TreeNode::nodeId id, TreeNode &node) {
   }
 }
 
-void makeEdges(Net &net, std::vector<TreeNode::nodeId> &vec, int j,
-        TreeNode *node, std::vector<std::pair<int, int>> &edges) {
-  for (TreeNode::nodeId &id: vec) {
+void edgesByLayers(Net &net, std::vector<TreeNode::Id> &vec,
+  TreeNode *node, std::vector<std::pair< TreeNode *, TreeNode *>> &edges) {
+  for (TreeNode::Id & id: vec) {
     TreeNode *connectedNode = net.getNode(id);
     if (connectedNode->layer > node->layer)
       continue;
-    edges.emplace_back(connectedNode->number, j);
+    edges.emplace_back(connectedNode, node);
   }
 }
 
-int crossCounting(Net &net, std::vector<std::vector<TreeNode::nodeId>> &tempNodesByLayer) {
-  int crossNum = 0;
+std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> getNetEdges(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer) {
+  std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> netEdges;
   for (int i = 1; i < tempNodesByLayer.size(); ++i) {
-    std::vector < std::pair < int, int >> edges;
+    std::vector<std::pair<TreeNode *, TreeNode *>> edges;
     for (int j = 0; j < tempNodesByLayer[i].size(); ++j) {
       TreeNode *node = net.getNode(tempNodesByLayer[i][j]);
-      makeEdges(net, node->pred, j, node, edges);
-      makeEdges(net, node->succ, j, node, edges);
+      edgesByLayers(net, node -> pred, node, edges);
+      edgesByLayers(net, node -> succ, node, edges);
     }
-    std::sort(edges.begin(), edges.end());
-    for (int j = 0; j < edges.size() - 1; ++j) {
-      for (int k = 0; k < edges.size() - 1; ++k) {
-        if (edges[k].second > edges[k + 1].second) {
-          std::swap(edges[k], edges[k + 1]);
-          crossNum += 1;
-        }
-      }
-    }
+    netEdges.push_back(edges);
   }
-  return crossNum;
+  return netEdges;
 }
 
-std::vector<std::pair<float, TreeNode::nodeId>> getBarycentricValueForPorts(Net &net,
-        std::vector<TreeNode::nodeId> &vec, bool forwardLayerSweep) {
-  std::vector<std::pair<float, TreeNode::nodeId>> b;
-  for (TreeNode::nodeId &id: vec) {
+int crossCounting(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer,
+        std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> &netEdges) {
+  int crossCount = 0;
+  for (int i = 0; i < netEdges.size(); ++i) {
+    std::sort(netEdges[i].begin(), netEdges[i].end(), [](const auto & x,
+      const auto & y) -> bool {
+      return x.first -> number < y.first -> number;
+    });
+
+    std::sort(netEdges[i].begin(), netEdges[i].end(), [ & crossCount](const auto & x,
+      const auto & y) -> bool {
+      if (x.second -> number < y.second -> number) {
+        ++crossCount;
+        return true;
+      }
+      return false;
+    });
+  }
+  return crossCount / 2;
+}
+
+std::vector<std::pair<float, TreeNode::Id>> getBarycentricValueForPorts(Net &net,
+        std::vector<TreeNode::Id> &vec, bool forwardLayerSweep) {
+  std::vector<std::pair<float, TreeNode::Id>> b;
+  for (TreeNode::Id &id: vec) {
     TreeNode *node = net.getNode(id);
     float bValue;
     if (forwardLayerSweep) {
@@ -121,11 +134,11 @@ std::vector<std::pair<float, TreeNode::nodeId>> getBarycentricValueForPorts(Net 
   return b;
 }
 
-void sortPorts(Net &net, std::vector<std::vector<TreeNode::nodeId>> &nodesByLayer) {
+void sortPorts(Net &net, std::vector<std::vector<TreeNode::Id>> &nodesByLayer) {
   for (int i = 1; i < nodesByLayer.size(); ++i) {
     for (int j = 0; j < nodesByLayer[i].size(); ++j) {
       TreeNode *node = net.getNode(nodesByLayer[i][j]);
-      std::vector<std::pair<float, TreeNode::nodeId>> bPred, bSucc;
+      std::vector<std::pair<float, TreeNode::Id>> bPred, bSucc;
 
       bPred = getBarycentricValueForPorts(net, node->pred, true);
       bSucc = getBarycentricValueForPorts(net, node->succ, false);
@@ -143,7 +156,7 @@ void sortPorts(Net &net, std::vector<std::vector<TreeNode::nodeId>> &nodesByLaye
   }
 }
 
-int totalRankForFixLayer(Net &net, std::vector<TreeNode::nodeId> &vec, TreeNode *node,
+int totalRankForFixLayer(Net &net, std::vector<TreeNode::Id> &vec, TreeNode *node,
         int increment, int &connectionsToAdjacentLayer) {
   int rank = 0;
   for (int k = 0; k < vec.size(); ++k) {
@@ -169,9 +182,10 @@ void barycentricValueDefinition(Net &net, TreeNode *node, int increment) {
   node->barycentricValue = rank / connectionsToAdjacentLayer;
 }
 
-bool stopAlgorithm(Net &net, std::vector<std::vector<TreeNode::nodeId>> &tempNodesByLayer,
-        int &intersections, std::vector<std::vector<TreeNode::nodeId>> &nodesByLayer) {
-  int intersectionsAfterAlgorithm = crossCounting(net, tempNodesByLayer);
+bool stopAlgorithm(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer,
+        int &intersections, std::vector<std::vector<TreeNode::Id>> &nodesByLayer,
+        std::vector < std::vector < std::pair < TreeNode *, TreeNode *>>> netEdges) {
+  int intersectionsAfterAlgorithm = crossCounting(net, tempNodesByLayer, netEdges);
   if (intersections > intersectionsAfterAlgorithm || intersections == -1) {
     intersections = intersectionsAfterAlgorithm;
     std::copy(tempNodesByLayer.begin(), tempNodesByLayer.end(), nodesByLayer.begin());
@@ -182,9 +196,10 @@ bool stopAlgorithm(Net &net, std::vector<std::vector<TreeNode::nodeId>> &tempNod
 }
 
 void layerSweepAlgorithm(Net &net) {
-  std::vector<std::vector<TreeNode::nodeId>> nodesByLayer = net.getNodesByLayer();
-  std::vector<std::vector<TreeNode::nodeId>> tempNodesByLayer(nodesByLayer.size());
+  std::vector<std::vector<TreeNode::Id>> nodesByLayer = net.getNodesByLayer();
+  std::vector<std::vector<TreeNode::Id>> tempNodesByLayer(nodesByLayer.size());
   std::copy(nodesByLayer.begin(), nodesByLayer.end(), tempNodesByLayer.begin());
+  std::vector < std::vector < std::pair < TreeNode *, TreeNode *>>> netEdges = getNetEdges(net, tempNodesByLayer);
 
   int intersections = -1;
   while (true) {
@@ -195,7 +210,7 @@ void layerSweepAlgorithm(Net &net) {
       }
       sortNodes(net, tempNodesByLayer[i]);
     }
-    if (stopAlgorithm(net, tempNodesByLayer, intersections, nodesByLayer))
+    if (stopAlgorithm(net, tempNodesByLayer, intersections, nodesByLayer, netEdges))
       break;
 
     //            backwards layer sweeps
@@ -205,7 +220,7 @@ void layerSweepAlgorithm(Net &net) {
       }
       sortNodes(net, tempNodesByLayer[i]);
     }
-    if (stopAlgorithm(net, tempNodesByLayer, intersections, nodesByLayer))
+    if (stopAlgorithm(net, tempNodesByLayer, intersections, nodesByLayer, netEdges))
       break;
   }
 
