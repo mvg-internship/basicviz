@@ -10,6 +10,25 @@
 
 #include <vector>
 
+struct AdditionalNetFeatures;
+void layerSweepAlgorithm(Net &net);
+bool stopAlgorithm(Net &net, AdditionalNetFeatures &additionalNetFeatures);
+
+struct AdditionalNetFeatures {
+private:
+  std::vector<std::vector<TreeNode::Id>> nodesByLayer;
+  std::vector<std::vector<TreeNode::Id>> tempNodesByLayer;
+  std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> netEdges;
+  int intersections = -1;
+
+public:
+  void minimizeIntersections(Net &net);
+  void setEdgesToOptimalCondition(Net &net);
+
+  friend void layerSweepAlgorithm(Net &net);
+  friend bool stopAlgorithm(Net &net, AdditionalNetFeatures &additionalNetFeatures);
+};
+
 float forwardRankDefinition(TreeNode &node, int nodeIndex, int portIndex) {
   return nodeIndex + portIndex / (node.succ.size() + 1);
 }
@@ -198,13 +217,11 @@ void barycentricValueDefinition(Net &net, TreeNode *node, int direction) {
   node->barycentricValue = rank / connectionsToAdjacentLayer;
 }
 
-bool stopAlgorithm(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer,
-        int &intersections, std::vector<std::vector<TreeNode::Id>> &nodesByLayer,
-        std::vector < std::vector < std::pair < TreeNode *, TreeNode *>>> netEdges) {
-  int intersectionsAfterAlgorithm = crossCounting(net, tempNodesByLayer, netEdges);
-  if (intersections > intersectionsAfterAlgorithm || intersections == -1) {
-    intersections = intersectionsAfterAlgorithm;
-    std::copy(tempNodesByLayer.begin(), tempNodesByLayer.end(), nodesByLayer.begin());
+bool stopAlgorithm(Net &net, AdditionalNetFeatures &additionalNetFeatures) {
+  int intersectionsAfterAlgorithm = crossCounting(net, additionalNetFeatures.tempNodesByLayer, additionalNetFeatures.netEdges);
+  if (additionalNetFeatures.intersections > intersectionsAfterAlgorithm || additionalNetFeatures.intersections == -1) {
+    additionalNetFeatures.intersections = intersectionsAfterAlgorithm;
+    std::copy(additionalNetFeatures.tempNodesByLayer.begin(), additionalNetFeatures.tempNodesByLayer.end(), additionalNetFeatures.nodesByLayer.begin());
     return false;
   } else {
     return true;
@@ -220,31 +237,39 @@ void doLayerSweeps(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesBy
   }
 }
 
-void layerSweepAlgorithm(Net &net) {
-  std::vector<std::vector<TreeNode::Id>> nodesByLayer = net.getNodesByLayer();
-  std::vector<std::vector<TreeNode::Id>> tempNodesByLayer(nodesByLayer.size());
-  std::copy(nodesByLayer.begin(), nodesByLayer.end(), tempNodesByLayer.begin());
-  std::vector < std::vector < std::pair < TreeNode *, TreeNode *>>> netEdges = getNetEdges(net, tempNodesByLayer);
-
-  int intersections = -1;
+void AdditionalNetFeatures::minimizeIntersections(Net &net) {
+  int direction = 1;
   while (true) {
-    //            forward layer sweeps
-    doLayerSweeps(net, tempNodesByLayer, 1);
-    if (stopAlgorithm(net, tempNodesByLayer, intersections, nodesByLayer, netEdges))
+    // forward layer sweeps: direction = 1; backwards layer sweeps direction = -1
+    doLayerSweeps(net, tempNodesByLayer, direction);
+    if (stopAlgorithm(net, *this))
       break;
-
-    //            backwards layer sweeps
-    doLayerSweeps(net, tempNodesByLayer, -1);
-    if (stopAlgorithm(net, tempNodesByLayer, intersections, nodesByLayer, netEdges))
-      break;
+    direction *= -1;
   }
+}
 
+void AdditionalNetFeatures::setEdgesToOptimalCondition(Net &net) {
+  //fix changes after the last iteration of selection of vertex order
   for (int i = 0; i < nodesByLayer.size(); ++i) {
     for (int j = 0; j < nodesByLayer[i].size(); ++j) {
-      net.getNode(
-        nodesByLayer[i][j])->number = j; //fix changes after the last iteration of selection of vertex order
+      net.getNode(nodesByLayer[i][j])->number = j;
     }
   }
-  sortPorts(net, nodesByLayer);
-  printf("\nintersections: %i\n", intersections);
+}
+
+void layerSweepAlgorithm(Net &net) {
+  AdditionalNetFeatures additionalNetFeatures;
+
+  additionalNetFeatures.nodesByLayer = net.getNodesByLayer();
+  additionalNetFeatures.tempNodesByLayer.resize(additionalNetFeatures.nodesByLayer.size());
+  std::copy(additionalNetFeatures.nodesByLayer.begin(), additionalNetFeatures.nodesByLayer.end(), additionalNetFeatures.tempNodesByLayer.begin());
+  additionalNetFeatures.netEdges = getNetEdges(net, additionalNetFeatures.tempNodesByLayer);
+
+  additionalNetFeatures.minimizeIntersections(net);
+
+  additionalNetFeatures.setEdgesToOptimalCondition(net);
+
+  sortPorts(net, additionalNetFeatures.nodesByLayer);
+
+  printf("\nintersections: %i\n", additionalNetFeatures.intersections);
 }
