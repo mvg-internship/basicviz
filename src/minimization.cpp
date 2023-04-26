@@ -10,6 +10,8 @@
 
 #include <vector>
 
+typedef std::pair<TreeNode *, TreeNode *> Edge;
+
 struct AdditionalNetFeatures;
 void layerSweepAlgorithm(Net &net);
 bool stopAlgorithm(Net &net, AdditionalNetFeatures &additionalNetFeatures);
@@ -18,7 +20,7 @@ struct AdditionalNetFeatures {
 private:
   std::vector<std::vector<TreeNode::Id>> nodesByLayer;
   std::vector<std::vector<TreeNode::Id>> tempNodesByLayer;
-  std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> netEdges;
+  std::vector<std::vector<Edge>> netEdges;
   int intersections = -1;
 
 public:
@@ -86,7 +88,7 @@ int getPortIndex(TreeNode::Id id, TreeNode &node) {
 }
 
 void edgesByLayers(Net &net, std::vector<TreeNode::Id> &vec,
-  TreeNode *node, std::vector<std::pair< TreeNode *, TreeNode *>> &edges) {
+  TreeNode *node, std::vector<Edge> &edges) {
   for (TreeNode::Id & id: vec) {
     TreeNode *connectedNode = net.getNode(id);
     if (connectedNode->layer > node->layer)
@@ -95,10 +97,10 @@ void edgesByLayers(Net &net, std::vector<TreeNode::Id> &vec,
   }
 }
 
-std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> getNetEdges(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer) {
-  std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> netEdges;
+std::vector<std::vector<Edge>> getNetEdges(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer) {
+  std::vector<std::vector<Edge>> netEdges;
   for (int i = 1; i < tempNodesByLayer.size(); ++i) {
-    std::vector<std::pair<TreeNode *, TreeNode *>> edges;
+    std::vector<Edge> edges;
     for (int j = 0; j < tempNodesByLayer[i].size(); ++j) {
       TreeNode *node = net.getNode(tempNodesByLayer[i][j]);
       edgesByLayers(net, node -> pred, node, edges);
@@ -110,7 +112,7 @@ std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> getNetEdges(Net &net
 }
 
 int crossCounting(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer,
-  std::vector<std::vector<std::pair<TreeNode *, TreeNode *>>> &netEdges) {
+  std::vector<std::vector<Edge>> &netEdges) {
   int crosscount = 0; /* number of crossings */
   for (int i = 0; i < netEdges.size(); ++i) {
     std::sort(netEdges[i].begin(), netEdges[i].end(), [](const auto & x,
