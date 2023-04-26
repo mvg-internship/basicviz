@@ -146,9 +146,10 @@ int crossCounting(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByL
   return crosscount;
 }
 
-std::vector<std::pair<float, TreeNode::Id>> getBarycentricValueForPorts(Net &net,
-        std::vector<TreeNode::Id> &vec, bool forwardLayerSweep) {
-  std::vector<std::pair<float, TreeNode::Id>> b;
+void getBarycentricValueForPorts(Net &net,
+  std::vector<TreeNode::Id> &vec,
+  bool forwardLayerSweep,
+  std::vector<std::pair<float, TreeNode::Id>> &barycentricValueForPorts) {
   for (TreeNode::Id &id: vec) {
     TreeNode *node = net.getNode(id);
     float bValue;
@@ -158,35 +159,31 @@ std::vector<std::pair<float, TreeNode::Id>> getBarycentricValueForPorts(Net &net
         float(node->succ.size() + node->pred.size());
     } else {
       bValue = backwardRankDefinition(*node, node->number,
-          getPortIndex(node->id,*node)) /
+          getPortIndex(node->id, *node)) /
         float(node->succ.size() + node->pred.size());
     }
-    b.push_back({
+    barycentricValueForPorts.push_back({
       bValue,
       node->id
     });
   }
-  return b;
 }
 
-void sortPorts(Net &net, std::vector<std::vector<TreeNode::Id>> &nodesByLayer) {
-  for (int i = 1; i < nodesByLayer.size(); ++i) {
+void sortPorts(Net &net, std::vector<TreeNode::Id> &vec, bool flag) {
+  std::vector<std::pair<float, TreeNode::Id>> barycentricValueForPorts;
+  getBarycentricValueForPorts(net, vec, flag, barycentricValueForPorts);
+  std::sort(barycentricValueForPorts.begin(), barycentricValueForPorts.end());
+  for (int k = 0; k < barycentricValueForPorts.size(); ++k) {
+    vec[k] = barycentricValueForPorts[k].second;
+  }
+}
+
+void portOrderOptimization(Net &net, std::vector<std::vector<TreeNode::Id>> &nodesByLayer) {
+  for (int i = 0; i < nodesByLayer.size(); ++i) {
     for (int j = 0; j < nodesByLayer[i].size(); ++j) {
       TreeNode *node = net.getNode(nodesByLayer[i][j]);
-      std::vector<std::pair<float, TreeNode::Id>> bPred, bSucc;
-
-      bPred = getBarycentricValueForPorts(net, node->pred, true);
-      bSucc = getBarycentricValueForPorts(net, node->succ, false);
-
-      std::sort(bPred.begin(), bPred.end());
-      std::sort(bSucc.begin(), bSucc.end());
-
-      for (int k = 0; k < bPred.size(); ++k) {
-        node->pred[k] = bPred[k].second;
-      }
-      for (int k = 0; k < bSucc.size(); ++k) {
-        node->succ[k] = bSucc[k].second;
-      }
+      sortPorts(net, node->pred, true);
+      sortPorts(net, node->succ, false);
     }
   }
 }
@@ -269,7 +266,7 @@ void layerSweepAlgorithm(Net &net) {
 
   additionalNetFeatures.setEdgesToOptimalCondition(net);
 
-  sortPorts(net, additionalNetFeatures.nodesByLayer);
+  portOrderOptimization(net, additionalNetFeatures.nodesByLayer);
 
   printf("\nintersections: %i\n", additionalNetFeatures.intersections);
 }
