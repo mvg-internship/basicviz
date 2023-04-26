@@ -107,18 +107,19 @@ std::vector<std::vector<Edge>> getNetEdges(Net &net, std::vector<std::vector<Tre
   return netEdges;
 }
 
+bool lexicographicSortCondition(const Edge &edge1, const Edge &edge2) {
+  if (edge1.first->number == edge2.first->number) {
+    return edge1.second->number < edge2.second->number;
+  } else {
+    return edge1.first->number < edge2.first->number;
+  }
+}
+
 int AdditionalNetFeatures::crossCounting(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer,
   std::vector<std::vector<Edge>> &netEdges) {
   int crosscount = 0; /* number of crossings */
   for (int i = 0; i < netEdges.size(); ++i) {
-    std::sort(netEdges[i].begin(), netEdges[i].end(), [](const auto & x,
-      const auto & y) -> bool {
-      if (x.first->number == y.first->number) {
-        return x.second->number < y.second->number;
-      } else {
-        return x.first->number < y.first->number;
-      }
-    });
+    std::sort(netEdges[i].begin(), netEdges[i].end(), lexicographicSortCondition);
     int first_leaf_index = 1;
     int n_edges = netEdges[i].size() * 2;
     while (first_leaf_index < n_edges) {
