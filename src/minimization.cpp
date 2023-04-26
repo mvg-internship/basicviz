@@ -12,24 +12,20 @@
 
 typedef std::pair<TreeNode *, TreeNode *> Edge;
 
-struct AdditionalNetFeatures;
-void layerSweepAlgorithm(Net &net);
-bool stopAlgorithm(Net &net, AdditionalNetFeatures &additionalNetFeatures);
+namespace {
+  struct AdditionalNetFeatures {
+    std::vector<std::vector<TreeNode::Id>> nodesByLayer;
+    std::vector<std::vector<TreeNode::Id>> tempNodesByLayer;
+    std::vector<std::vector<Edge>> netEdges;
+    int intersections = -1;
 
-struct AdditionalNetFeatures {
-private:
-  std::vector<std::vector<TreeNode::Id>> nodesByLayer;
-  std::vector<std::vector<TreeNode::Id>> tempNodesByLayer;
-  std::vector<std::vector<Edge>> netEdges;
-  int intersections = -1;
-
-public:
-  void minimizeIntersections(Net &net);
-  void setEdgesToOptimalCondition(Net &net);
-
-  friend void layerSweepAlgorithm(Net &net);
-  friend bool stopAlgorithm(Net &net, AdditionalNetFeatures &additionalNetFeatures);
-};
+    void minimizeIntersections(Net &net);
+    void setEdgesToOptimalCondition(Net &net);
+    int crossCounting(Net &net,
+      std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer,
+      std::vector<std::vector<Edge>> &netEdges);
+  };
+}
 
 float forwardRankDefinition(TreeNode &node, int nodeIndex, int portIndex) {
   return nodeIndex + portIndex / (node.succ.size() + 1);
@@ -111,7 +107,7 @@ std::vector<std::vector<Edge>> getNetEdges(Net &net, std::vector<std::vector<Tre
   return netEdges;
 }
 
-int crossCounting(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer,
+int AdditionalNetFeatures::crossCounting(Net &net, std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer,
   std::vector<std::vector<Edge>> &netEdges) {
   int crosscount = 0; /* number of crossings */
   for (int i = 0; i < netEdges.size(); ++i) {
@@ -217,7 +213,7 @@ void barycentricValueDefinition(Net &net, TreeNode *node, int direction) {
 }
 
 bool stopAlgorithm(Net &net, AdditionalNetFeatures &additionalNetFeatures) {
-  int intersectionsAfterAlgorithm = crossCounting(net, additionalNetFeatures.tempNodesByLayer, additionalNetFeatures.netEdges);
+  int intersectionsAfterAlgorithm = additionalNetFeatures.crossCounting(net, additionalNetFeatures.tempNodesByLayer, additionalNetFeatures.netEdges);
   if (additionalNetFeatures.intersections > intersectionsAfterAlgorithm || additionalNetFeatures.intersections == -1) {
     additionalNetFeatures.intersections = intersectionsAfterAlgorithm;
     std::copy(additionalNetFeatures.tempNodesByLayer.begin(), additionalNetFeatures.tempNodesByLayer.end(), additionalNetFeatures.nodesByLayer.begin());
