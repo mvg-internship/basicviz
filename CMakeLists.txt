@@ -12,10 +12,14 @@ add_subdirectory(extern/lorina/lib)
 
 add_library(Lorina INTERFACE)
 target_include_directories(Lorina
-    INTERFACE
+    SYSTEM INTERFACE
         extern/lorina/include
 )
 target_link_libraries(Lorina INTERFACE fmt)
+
+if(NOT MSVC)
+  add_compile_options(-g3 -Wall -Wextra -pedantic )
+endif()
 
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 add_subdirectory(src)
