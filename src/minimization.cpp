@@ -22,7 +22,7 @@ namespace {
 
     void minimizeIntersections(Net &net);
     void setEdgesToOptimalCondition(Net &net);
-    int crossCounting(Net &net, AdditionalNetFeatures &features);
+    int crossCounting(AdditionalNetFeatures &features);
   };
 }
 
@@ -46,14 +46,14 @@ void sortNodes(Net &net, std::vector<TreeNode::Id> &layer) {
     const auto &y) -> bool {
     return net.getNode(x)->barycentricValue < net.getNode(y)->barycentricValue;
   });
-  for (int i = 0; i < layer.size(); ++i) {
+  for (size_t i = 0; i < layer.size(); ++i) {
     net.getNode(layer[i])->number = i;
   }
 }
 
 int getAmountOfLayers(std::vector<TreeNode> &nodes) {
   int amountOfLayers = 0;
-  for (int i = 0; i < nodes.size(); ++i) {
+  for (size_t i = 0; i < nodes.size(); ++i) {
     if (nodes[i].layer > amountOfLayers)
       amountOfLayers = nodes[i].layer;
   }
@@ -72,14 +72,15 @@ std::vector<std::vector<TreeNode::Id>>Net::getNodesByLayer() {
 }
 
 int getPortIndex(TreeNode::Id id, TreeNode &node) {
-  for (int i = 0; i < node.succ.size(); ++i) {
+  for (size_t i = 0; i < node.succ.size(); ++i) {
     if (node.succ[i] == id)
       return i;
   }
-  for (int i = 0; i < node.pred.size(); ++i) {
+  for (size_t i = 0; i < node.pred.size(); ++i) {
     if (node.pred[i] == id)
       return i;
   }
+    return 0;
 }
 
 void edgesByLayers(Net &net,
@@ -97,9 +98,9 @@ void edgesByLayers(Net &net,
 std::vector<std::vector<Edge>> getNetEdges(Net &net,
                                std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer) {
   std::vector<std::vector<Edge>> netEdges;
-  for (int i = 1; i < tempNodesByLayer.size(); ++i) {
+  for (size_t i = 1; i < tempNodesByLayer.size(); ++i) {
     std::vector<Edge> edges;
-    for (int j = 0; j < tempNodesByLayer[i].size(); ++j) {
+    for (size_t j = 0; j < tempNodesByLayer[i].size(); ++j) {
       TreeNode *node = net.getNode(tempNodesByLayer[i][j]);
       edgesByLayers(net, node->pred, node, edges);
       edgesByLayers(net, node->succ, node, edges);
@@ -127,9 +128,9 @@ int nearestPow2(int x) {
   return ++x;
 }
 
-int AdditionalNetFeatures::crossCounting(Net &net, AdditionalNetFeatures &features) {
+int AdditionalNetFeatures::crossCounting(AdditionalNetFeatures &features) {
   int crossCount = 0;
-  for (int i = 0; i < netEdges.size(); ++i) {
+  for (size_t i = 0; i < netEdges.size(); ++i) {
     std::sort(netEdges[i].begin(), netEdges[i].end(), lexicographicSortCondition);
 
     const int numLeaves = nearestPow2(netEdges[i].size());
@@ -139,7 +140,7 @@ int AdditionalNetFeatures::crossCounting(Net &net, AdditionalNetFeatures &featur
     features.accTree.clear();
     features.accTree.resize(treeSize, 0);
 
-    for (int k = 0; k < netEdges[i].size(); k++) {
+    for (size_t k = 0; k < netEdges[i].size(); k++) {
       int index = netEdges[i][k].second -> number + firstLeafIndex;
       ++features.accTree[index];
       while (index > 0) {
@@ -175,14 +176,14 @@ void sortPorts(Net &net, std::vector<TreeNode::Id> &vec, bool flag) {
   std::vector<std::pair<float, TreeNode::Id>> barycentricValueForPorts;
   getBarycentricValueForPorts(net, vec, flag, barycentricValueForPorts);
   std::sort(barycentricValueForPorts.begin(), barycentricValueForPorts.end());
-  for (int k = 0; k < barycentricValueForPorts.size(); ++k) {
+  for (size_t k = 0; k < barycentricValueForPorts.size(); ++k) {
     vec[k] = barycentricValueForPorts[k].second;
   }
 }
 
 void portOrderOptimization(Net &net, std::vector<std::vector<TreeNode::Id>> &nodesByLayer) {
-  for (int i = 0; i < nodesByLayer.size(); ++i) {
-    for (int j = 0; j < nodesByLayer[i].size(); ++j) {
+  for (size_t i = 0; i < nodesByLayer.size(); ++i) {
+    for (size_t j = 0; j < nodesByLayer[i].size(); ++j) {
       TreeNode *node = net.getNode(nodesByLayer[i][j]);
       sortPorts(net, node->pred, true);
       sortPorts(net, node->succ, false);
@@ -196,7 +197,7 @@ int totalRankForFixLayer(Net &net,
     int direction,
     int &connectionsToAdjacentLayer) {
   int rank = 0;
-  for (int k = 0; k < vec.size(); ++k) {
+  for (size_t k = 0; k < vec.size(); ++k) {
     if (net.getNode(vec[k])->layer + direction != node->layer)
       continue;
     connectionsToAdjacentLayer += 1;
@@ -219,8 +220,8 @@ void barycentricValueDefinition(Net &net, TreeNode *node, int direction) {
   node->barycentricValue = rank / connectionsToAdjacentLayer;
 }
 
-bool stopAlgorithm(Net &net, AdditionalNetFeatures &features) {
-  int intersectionsAfterAlgorithm = features.crossCounting(net, features);
+bool stopAlgorithm(AdditionalNetFeatures &features) {
+  int intersectionsAfterAlgorithm = features.crossCounting(features);
   if (features.intersections > intersectionsAfterAlgorithm || features.intersections == -1) {
     features.intersections = intersectionsAfterAlgorithm;
     std::copy(
@@ -236,10 +237,10 @@ bool stopAlgorithm(Net &net, AdditionalNetFeatures &features) {
 void doLayerSweeps(Net &net,
      std::vector<std::vector<TreeNode::Id>> &tempNodesByLayer,
      int direction) {
-  for (int i = direction == 1 ? 1 : tempNodesByLayer.size() - 2;
+  for (size_t i = direction == 1 ? 1 : tempNodesByLayer.size() - 2;
        direction == 1 ? i < tempNodesByLayer.size() : i >= 0;
        i += direction) {
-    for (int j = 0; j < tempNodesByLayer[i].size(); ++j) {
+    for (size_t j = 0; j < tempNodesByLayer[i].size(); ++j) {
       barycentricValueDefinition(net, net.getNode(tempNodesByLayer[i][j]), direction);
     }
     sortNodes(net, tempNodesByLayer[i]);
@@ -251,7 +252,7 @@ void AdditionalNetFeatures::minimizeIntersections(Net &net) {
   while (true) {
     // forward layer sweeps: direction = 1; backwards layer sweeps direction = -1
     doLayerSweeps(net, tempNodesByLayer, direction);
-    if (stopAlgorithm(net, *this))
+    if (stopAlgorithm(*this))
       break;
     direction *= -1;
   }
@@ -259,8 +260,8 @@ void AdditionalNetFeatures::minimizeIntersections(Net &net) {
 
 void AdditionalNetFeatures::setEdgesToOptimalCondition(Net &net) {
   //fix changes after the last iteration of selection of vertex order
-  for (int i = 0; i < nodesByLayer.size(); ++i) {
-    for (int j = 0; j < nodesByLayer[i].size(); ++j) {
+  for (size_t i = 0; i < nodesByLayer.size(); ++i) {
+    for (size_t j = 0; j < nodesByLayer[i].size(); ++j) {
       net.getNode(nodesByLayer[i][j])->number = j;
     }
   }
