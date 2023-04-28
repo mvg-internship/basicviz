@@ -6,14 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// 1)Layer sweep algorithm - Algorithm for placing nodes in each layer based on the forward and backward pass of the net.
-// link: https://rtsys.informatik.uni-kiel.de/~biblio/downloads/papers/jvlc13.pdf
-// 2)AdditionalNetFeatures - a structure containing descriptions of vertices by layers,
-// temporal distribution by vertices, and edges
-// 3)crossCounting - graph edge intersection counting algorithm
-// link: https://jgaa.info/accepted/2004/BarthMutzelJuenger2004.8.2.pdf
-// Author: Wilhelm Barth, Michael J¨unger, and Petra Mutzel.
-
 #include "minimization.h"
 #include "layout.h"
 
@@ -24,6 +16,8 @@ typedef std::pair<TreeNode *, TreeNode *> Edge;
 
 namespace {
   struct AdditionalNetFeatures {
+//  AdditionalNetFeatures - a structure containing descriptions of vertices by layers,
+//  temporal distribution by vertices, and edges
     std::vector<std::vector<TreeNode::Id>> nodesByLayer;
     std::vector<std::vector<TreeNode::Id>> tempNodesByLayer;
     std::vector<std::vector<Edge>> netEdges;
@@ -126,6 +120,9 @@ int nearestPow2(int x) {
 }
 
 int AdditionalNetFeatures::crossCounting() {
+//  crossCounting - graph edge intersection counting algorithm
+//  link: https://jgaa.info/accepted/2004/BarthMutzelJuenger2004.8.2.pdf
+//  Author: Wilhelm Barth, Michael J¨unger, and Petra Mutzel.
   int crossCount = 0;
   for (size_t i = 0; i < netEdges.size(); ++i) {
     std::sort(netEdges[i].begin(), netEdges[i].end(), lexicographicSortCondition);
