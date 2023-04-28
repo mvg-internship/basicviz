@@ -24,13 +24,12 @@ typedef std::pair<TreeNode *, TreeNode *> Edge;
 namespace {
   struct AdditionalNetFeatures {
     std::vector<std::vector<TreeNode::Id>> nodesByLayer;
-//
     std::vector<std::vector<TreeNode::Id>> tempNodesByLayer;
     std::vector<std::vector<Edge>> netEdges;
     int intersections = -1;
     std::vector<int> accTree;
 
-    void minimizeIntersections(Net &net);
+    void layerSweepAlgorithm(Net &net);
     void setEdgesToOptimalCondition(Net &net);
     int crossCounting();
   };
@@ -239,7 +238,7 @@ void doLayerSweep(Net &net,
   sortNodes(net, layer);
 }
 
-void AdditionalNetFeatures::minimizeIntersections(Net &net) {
+void AdditionalNetFeatures::layerSweepAlgorithm(Net &net) {
   int direction = 1;
   while (true) {
     // forward layer sweeps: direction = 1; backwards layer sweeps direction = -1
@@ -267,7 +266,7 @@ void AdditionalNetFeatures::setEdgesToOptimalCondition(Net &net) {
   }
 }
 
-void layerSweepAlgorithm(Net &net) {
+void minimizeIntersections(Net &net) {
   AdditionalNetFeatures features;
 
   features.nodesByLayer = net.getNodesByLayer();
@@ -279,7 +278,7 @@ void layerSweepAlgorithm(Net &net) {
 
   features.netEdges = getNetEdges(net, features.tempNodesByLayer);
 
-  features.minimizeIntersections(net);
+  features.layerSweepAlgorithm(net);
 
   features.setEdgesToOptimalCondition(net);
 

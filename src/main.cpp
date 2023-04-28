@@ -285,7 +285,7 @@ int main(int argc, char *argv[]) {
   }
 
   net.assignLayers();
-  layerSweepAlgorithm(net);
+  minimizeIntersections(net);
   std::vector<NormalizedElement> normalizedElements = {};
   net.netTreeNodesToNormalizedElements(normalizedElements);
     
