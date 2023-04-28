@@ -13,6 +13,7 @@
 // 3)crossCounting - graph edge intersection counting algorithm
 // link: https://jgaa.info/accepted/2004/BarthMutzelJuenger2004.8.2.pdf
 // Author: Wilhelm Barth, Michael J¨unger, and Petra Mutzel.
+
 #include "minimization.h"
 #include "layout.h"
 
@@ -186,12 +187,11 @@ void portOrderOptimization(Net &net, std::vector<std::vector<TreeNode::Id>> &nod
   }
 }
 
-int totalRankForFixLayer(
-    Net &net,
-    std::vector<TreeNode::Id> &vec,
-    TreeNode *node,
-    int direction,
-    int &connectionsToAdjacentLayer) {
+int totalRankForFixLayer(Net &net,
+                         std::vector<TreeNode::Id> &vec,
+                         TreeNode *node,
+                         int direction,
+                         int &connectionsToAdjacentLayer) {
   int rank = 0;
   for (size_t k = 0; k < vec.size(); ++k) {
     if (net.getNode(vec[k])->layer + direction != node->layer)
