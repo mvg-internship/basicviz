@@ -244,7 +244,7 @@ void AdditionalNetFeatures::layerSweepAlgorithm(Net &net) {
         doLayerSweep(net, *it, direction);
       }
     } else {
-      for (auto it = tempNodesByLayer.rbegin() - 1, end = tempNodesByLayer.rend(); it != end; ++it) {
+      for (auto it = tempNodesByLayer.rbegin() + 1, end = tempNodesByLayer.rend(); it != end; ++it) {
         doLayerSweep(net, *it, direction);
       }
     }
