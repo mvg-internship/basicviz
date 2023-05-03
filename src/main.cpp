@@ -17,6 +17,7 @@
 #include "layout.h"
 #include "netfmt_bench.h"
 #include "main.h"
+#include "minimization.h"
 
 enum StatusCode {
   SUCCESS = 0,
@@ -284,7 +285,7 @@ int main(int argc, char *argv[]) {
   }
 
   net.assignLayers();
-
+  minimizeIntersections(net);
   std::vector<NormalizedElement> normalizedElements = {};
   net.netTreeNodesToNormalizedElements(normalizedElements);
     
