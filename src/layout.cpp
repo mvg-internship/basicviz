@@ -224,7 +224,7 @@ void algorithmASAP(
 void addLineSegment(
     std::vector<TreeNode> &nodes,
     std::vector<int> &lensLayer,
-    TreeNode &nodeStart,
+    int idStart,
     int idEnd,
     bool isDownward) {
   int order;
@@ -234,9 +234,9 @@ void addLineSegment(
     order = -1;
   }
 
-  int idPrevSucc = nodeStart.succ[idEnd];
-  nodeStart.succ[idEnd] = nodes.size();
-  for (int i = nodeStart.layer + order;
+  int idPrevSucc = nodes[idStart].succ[idEnd];
+  nodes[idStart].succ[idEnd] = nodes.size();
+  for (int i = nodes[idStart].layer + order;
        (i < nodes[idPrevSucc].layer && order == 1) ||
        (i > nodes[idPrevSucc].layer && order == -1);
        i += order) {
@@ -246,8 +246,8 @@ void addLineSegment(
     dummy.layer = i;
     dummy.number = lensLayer[i];
     lensLayer[i]++;
-    if (i == nodeStart.layer + order) {
-      dummy.pred.push_back(nodeStart.id);
+    if (i == nodes[idStart].layer + order) {
+      dummy.pred.push_back(idStart);
     } else {
       dummy.pred.push_back(dummy.id - 1);
     }
@@ -261,7 +261,7 @@ void addLineSegment(
   }
 
   for (int i = 0; i < nodes[idPrevSucc].pred.size(); i++) {
-    if (nodes[idPrevSucc].pred[i] == nodeStart.id) {
+    if (nodes[idPrevSucc].pred[i] == idStart) {
       nodes[idPrevSucc].pred.erase(nodes[idPrevSucc].pred.begin() + i);
       break;
     }
@@ -273,7 +273,7 @@ bool addDummyNodes(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer) {
     for (int j = 0; j < node.succ.size(); j++) {
       int distance = nodes[node.succ[j]].layer - node.layer;
       if (distance > 1 || distance < -1) {
-        addLineSegment(nodes, lensLayer, node, j, distance > 1);
+        addLineSegment(nodes, lensLayer, node.id, j, distance > 1);
         return false;
       }
     }
