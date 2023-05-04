@@ -11,7 +11,7 @@
 
 #include <istream>
 
-class Net;
+struct Net;
 
 bool readNetFromBench(std::istream &is, Net &net);
 

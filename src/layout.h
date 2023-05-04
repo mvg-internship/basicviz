@@ -14,7 +14,7 @@
 #include "main.h"
 
 struct TreeNode {
-  using Id = int;
+  using Id = size_t;
 
   std::vector<Id> succ = {};
   std::vector<Id> pred = {};

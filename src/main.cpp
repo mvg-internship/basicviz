@@ -262,7 +262,7 @@ void moveViewport(
   }
 }
 
-const float scaleMouseWheel(const Sint32 mouseWheelY) {
+float scaleMouseWheel(const Sint32 mouseWheelY) {
   return 1 + mouseWheelY * mouseWheelScalingFactor;
 }
 

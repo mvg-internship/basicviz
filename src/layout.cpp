@@ -37,7 +37,7 @@ bool cycleExistsDFS(std::vector<TreeNode> &nodes) {
   }
 
   std::vector<bool> usedId(nodes.size(), false);
-  for (int i = 0; i < nodes.size(); i++) {
+  for (size_t i = 0; i < nodes.size(); i++) {
     if (nodes[i].pred.size() == 0) {
       bool exist = algorithmDFS(nodes[i], nodes, usedId);
       if (exist) {
@@ -78,13 +78,15 @@ size_t dispatchSinks(
     std::vector<EdgeCount> &edgeCounts,
     std::vector<TreeNode::Id> &s2) {
   size_t decrlenNodes = 0;
-  for (int i = 0; i < edgeCounts.size(); i++) {
+  for (size_t i = 0; i < edgeCounts.size();) {
     if (edgeCounts[i].degOut == 0) {
       s2.push_back(i);
       removeEdgeCount(i, edgeCounts, nodes);
       decrlenNodes++;
 
-      i = -1;
+      i = 0;
+    } else {
+      i++;
     }
   }
   return decrlenNodes;
@@ -95,13 +97,15 @@ size_t dispatchSources(
     std::vector<EdgeCount> &edgeCounts,
     std::vector<TreeNode::Id> &s1) {
   size_t decrlenNodes = 0;
-  for (int i = 0; i < edgeCounts.size(); i++) {
+  for (size_t i = 0; i < edgeCounts.size();) {
     if (edgeCounts[i].degIn == 0) {
       s1.push_back(i);
       removeEdgeCount(i, edgeCounts, nodes);
       decrlenNodes++;
 
-      i = -1;
+      i = 0;
+    } else {
+      i++;
     }
   }
   return decrlenNodes;
@@ -131,13 +135,13 @@ void greedyFAS(
 
     if (lenNodes > 0) {
       int max;
-      for (int i = 0; i < edgeCounts.size(); i++) {
+      for (size_t i = 0; i < edgeCounts.size(); i++) {
         if (edgeCounts[i].degOut >= 0 && edgeCounts[i].degIn >= 0) {
           max = i;
           break;
         }
       }
-      for (int i = 0; i < edgeCounts.size(); i++) {
+      for (size_t i = 0; i < edgeCounts.size(); i++) {
         if (edgeCounts[i].degOut - edgeCounts[i].degIn > max &&
             edgeCounts[i].degOut >= 0 && edgeCounts[i].degIn >= 0) {
           max = i;
@@ -190,22 +194,22 @@ void algorithmASAP(
   }
 
   int nodesInLayer = 0;
-  int removedCount = 0;
-  for (int i = 0; removedCount < nodes.size(); i++) {
-    for (int j = 0; j < nodes.size(); j++) {
+  size_t removedCount = 0;
+  for (size_t i = 0; removedCount < nodes.size(); i++) {
+    for (size_t j = 0; j < nodes.size(); j++) {
       if (degInNodes[j] == 0 && removedNodes[j] == -1) {
         removedNodes[j] = 0;
         removedCount++;
       }
     }
 
-    for (int j = 0; j < nodes.size(); j++) {
+    for (size_t j = 0; j < nodes.size(); j++) {
       if (removedNodes[j] == 0) {
         nodes[j].layer = i;
         nodes[j].number = nodesInLayer;
         nodesInLayer++;
 
-        for (int k = 0; k < nodes[j].succ.size(); k++) {
+        for (size_t k = 0; k < nodes[j].succ.size(); k++) {
           degInNodes[nodes[j].succ[k]]--;
         }
         removedNodes[j] = 1;
@@ -224,8 +228,8 @@ void algorithmASAP(
 void addLineSegment(
     std::vector<TreeNode> &nodes,
     std::vector<int> &lensLayer,
-    int idStart,
-    int idEnd,
+    size_t idStart,
+    size_t idEnd,
     bool isDownward) {
   int order;
   if (isDownward) {
@@ -260,7 +264,7 @@ void addLineSegment(
     nodes.push_back(dummy);
   }
 
-  for (int i = 0; i < nodes[idPrevSucc].pred.size(); i++) {
+  for (size_t i = 0; i < nodes[idPrevSucc].pred.size(); i++) {
     if (nodes[idPrevSucc].pred[i] == idStart) {
       nodes[idPrevSucc].pred.erase(nodes[idPrevSucc].pred.begin() + i);
       break;
@@ -270,7 +274,7 @@ void addLineSegment(
 
 bool addDummyNodes(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer) {
   for (TreeNode &node : nodes) {
-    for (int j = 0; j < node.succ.size(); j++) {
+    for (size_t j = 0; j < node.succ.size(); j++) {
       int distance = nodes[node.succ[j]].layer - node.layer;
       if (distance > 1 || distance < -1) {
         addLineSegment(nodes, lensLayer, node.id, j, distance > 1);
@@ -300,7 +304,7 @@ TreeNode::Id Net::addNode() {
 
 const std::vector<TreeNode::Id> &Net::getSources() {
   if (!sourcesCalculated) {
-    for (int i = 0; i < nodes.size(); i++) {
+    for (size_t i = 0; i < nodes.size(); i++) {
       if (nodes[i].pred.size() == 0) {
         sources.push_back(nodes[i].id);
       }
@@ -311,7 +315,7 @@ const std::vector<TreeNode::Id> &Net::getSources() {
 
 const std::vector<TreeNode::Id> &Net::getSinks() {
   if (!sinksCalculated) {
-    for (int i = 0; i < nodes.size(); i++) {
+    for (size_t i = 0; i < nodes.size(); i++) {
       if (nodes[i].succ.size() == 0) {
         sinks.push_back(nodes[i].id);
       }
@@ -393,8 +397,8 @@ void initConnections(
     std::vector<TreeNode> &nodes,
     std::vector<NormalizedElement> &normalizedElements) {
   int countConnections = 0;
-  for (int i = 0; i < nodes.size(); i++) {
-    for (int &succId : nodes[i].succ) {
+  for (size_t i = 0; i < nodes.size(); i++) {
+    for (size_t &succId : nodes[i].succ) {
       NormalizedConnection connection = {};
 
       connection.id = countConnections;
