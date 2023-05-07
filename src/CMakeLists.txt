@@ -4,4 +4,5 @@ target_link_libraries(main
         SDL2::SDL2
         SDL2_ttf::SDL2_ttf
         pugixml::pugixml
-	Lorina)
+	Lorina
+        cli11)

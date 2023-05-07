@@ -8,12 +8,14 @@
 
 #define SDL_MAIN_HANDLED
 #include "pugixml.hpp"
+#include <CLI/CLI.hpp>
 
 #include <vector>
 #include <iostream>
 #include <string>
-
 #include <fstream>
+#include <chrono>
+
 #include "layout.h"
 #include "netfmt_bench.h"
 #include "main.h"
@@ -56,10 +58,14 @@ const float zoomInScalingFactor = 1.1f;
 const float zoomOutScalingFactor = 0.9f;
 const float mouseWheelScalingFactor = 0.1f;
 
-const std::string printCompactMode = "--compact";
-const std::string printDefaultMode = "--default";
-const std::string parseRawMode = "--raw";
-const std::string drawColorsMode = "--colors";
+const unsigned int framesNum = 100;
+
+const std::string optionFile = "file";
+const std::string flagFPS = "--fps";
+const std::string flagRaw = "--raw";
+const std::string flagCompact = "--compact";
+const std::string flagMinimize = "--minimize";
+const std::string flagColors = "--colors";
 
 float normalizedToScreenX(const float nX, const int screenW) {
   return nX * screenW;
@@ -238,9 +244,9 @@ std::ostream &operator<<(
 }
 
 void print(
-    const std::string &printMode,
-    const std::vector<Element> &elementsToPrint) {
-  if (printMode == printCompactMode) {
+    const std::vector<Element> &elementsToPrint,
+    bool printCompact) {
+  if (printCompact) {
     size_t connectionsCount = 0;
     for (const Element &element : elementsToPrint) {
       connectionsCount += element.connections.size();
@@ -250,7 +256,7 @@ void print(
         << "\nNumber of connections: "
         << connectionsCount
         << std::endl;
-  } else if (printMode == printDefaultMode) {
+  } else {
     for (const Element &element : elementsToPrint) {
       std::cout << element;
     }
@@ -342,32 +348,41 @@ float scaleMouseWheel(const Sint32 mouseWheelY) {
 }
 
 int main(int argc, char *argv[]) {
-  // Parse text file
-  if (argc < 2) {
-    std::cerr << statusMessages[FILENAME_NOT_PROVIDED];
-    return FILENAME_NOT_PROVIDED;
-  }
-  
-  std::string printMode = printDefaultMode;
-  if (argc >= 3) {
-    printMode = argv[2];
-  }
+  CLI::App cliApp;
+
+  std::string filename;
+  cliApp.add_option(optionFile, 
+      filename, 
+      "File to parse")->required();
 
   bool parseRaw = false;
-  if (argc >= 4) {
-    if (argv[3] == parseRawMode) {
-      parseRaw = true;
-    }
-  }
+  auto cliRaw = cliApp.add_flag(flagRaw, 
+      parseRaw, 
+      "Parse graph represented as FLG file");
 
-  bool drawColors = false;
-  if (argc >= 5) {
-    if (argv[4] == drawColorsMode) {
-      drawColors = true;
-    }
-  }
+  bool printCompact = false;
+  cliApp.add_flag(flagCompact, 
+      printCompact, 
+      "Print quantity of elements and connections");
 
-  std::ifstream ifs(argv[1]);
+  bool drawColor = false;
+  cliApp.add_flag(flagColors, 
+      drawColor, 
+      "Draw color");
+
+  bool showFPS = false;
+  cliApp.add_flag(flagFPS, 
+      showFPS, 
+      "Show average frame time, FPS and BENCH file processing time");
+
+  bool processMinimize = false;
+  cliApp.add_flag(flagMinimize, 
+      processMinimize, 
+      "Minimize intersections")->excludes(cliRaw);
+
+  CLI11_PARSE(cliApp, argc, argv);
+
+  std::ifstream ifs(filename);
   std::vector<Element> normalizedElements = {};
   if (parseRaw) {
     if (parseInput(ifs, normalizedElements)) {
@@ -380,8 +395,20 @@ int main(int argc, char *argv[]) {
       std::cerr << statusMessages[BENCH_READER_ERROR];
       return BENCH_READER_ERROR;
     }
+    auto start = std::chrono::high_resolution_clock::now();
     net.assignLayers();
     net.netTreeNodesToNormalizedElements(normalizedElements);
+    if (processMinimize) {
+      minimizeIntersections(net);
+    }
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+    if (showFPS) {
+      std::cout << "BENCH processing time: " 
+          << duration 
+          << " ms." 
+          << std::endl;
+    }
   }
   // Prepare draw data and draw
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -389,7 +416,7 @@ int main(int argc, char *argv[]) {
     return SDL_INIT_FAILURE;
   }
 
-  print(printMode, normalizedElements);
+  print(normalizedElements, printCompact);
 
   std::cout << statusMessages[SUCCESS];
 
@@ -405,7 +432,7 @@ int main(int argc, char *argv[]) {
       SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
   convertNormToScreen(normalizedElements, screenW, screenH);
-  drawFrame(renderer, normalizedElements, drawColors);
+  drawFrame(renderer, normalizedElements, drawColor);
 
   // Event loop
   bool isRunning = true;
@@ -414,7 +441,26 @@ int main(int argc, char *argv[]) {
   int mouseY1 = 0;
   int mouseX2 = 0;
   int mouseY2 = 0;
+
+  auto start = std::chrono::high_resolution_clock::now();
+  unsigned int count = 0;
   while (isRunning) {
+    if (count == framesNum) {
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+      auto avgFrameTime = duration / count;
+      auto avgFPS = 1000/avgFrameTime;
+      start = std::chrono::high_resolution_clock::now();
+      count = 0;
+      if (showFPS) {
+        std::cout << "Avg frame time: " 
+            << avgFrameTime 
+            << " ms. FPS:" 
+            << avgFPS 
+            << std::endl;
+      }     
+    }
+    count++;
     SDL_Event event;
     // User input handler
     while (SDL_PollEvent(&event)) {
@@ -449,7 +495,7 @@ int main(int argc, char *argv[]) {
         scaleViewport(scaleMouseWheel(event.wheel.y), normalizedElements);
       }
     }
-    drawFrame(renderer, normalizedElements, drawColors);
+    drawFrame(renderer, normalizedElements, drawColor);
   }
   // Shutdown
   SDL_DestroyWindow(window);
