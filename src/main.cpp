@@ -50,6 +50,7 @@ const char *const parserConnections = "connections";
 const char *const parserOutlineColor = "outline_color";
 const char *const parserFillColor = "fill_color";
 const char *const parserColor = "color";
+const char *const parserBackColor = "background_color";
 const char *const parserR = "r";
 const char *const parserG = "g";
 const char *const parserB = "b";
@@ -135,18 +136,34 @@ void Element::normalizedToScreen(
   scrRect.h = normalizedToScreenY(nH, screenH);
 }
 
-void drawBackground(SDL_Renderer *renderer) {
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+void drawBackground(SDL_Renderer *renderer, 
+    const SDL_Color &backgroundColor, 
+    const bool drawColor) {
+  if (drawColor) {
+    SDL_SetRenderDrawColor(renderer, 
+        backgroundColor.r,
+        backgroundColor.g,
+        backgroundColor.b,
+        SDL_ALPHA_OPAQUE);
+  } else {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+  }
   SDL_RenderClear(renderer);
 }
 
 int parseInput(
     std::istream &stream,
-    std::vector<Element> &elementsToParse) {
+    std::vector<Element> &elementsToParse,
+    SDL_Color &backgroundColor) {
   pugi::xml_document file;
   if (!file.load(stream)) {
     return RAW_PARSER_FAILURE;
   }
+
+  pugi::xml_node parsedBackColor = file.child(parserLogicScheme).child(parserBackColor);
+  backgroundColor.r = parsedBackColor.attribute(parserR).as_int(255);
+  backgroundColor.g = parsedBackColor.attribute(parserG).as_int(255);
+  backgroundColor.b = parsedBackColor.attribute(parserB).as_int(255);
 
   pugi::xml_node elements = file.child(parserLogicScheme).child(parserElements);
 
@@ -280,8 +297,9 @@ void convertNormToScreen(
 void drawFrame(
     SDL_Renderer *renderer,
     const std::vector<Element> &elementsToDraw,
-    bool drawColor) {
-  drawBackground(renderer);
+    const SDL_Color &backgroundColor,
+    const bool drawColor) {
+  drawBackground(renderer, backgroundColor, drawColor);
 
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 
@@ -347,6 +365,17 @@ float scaleMouseWheel(const Sint32 mouseWheelY) {
   return 1 + mouseWheelY * mouseWheelScalingFactor;
 }
 
+void defaultColor(std::vector<Element> &elementsToColor, SDL_Color &backgroundColor) {
+  for (Element &elementToColor : elementsToColor) {
+    elementToColor.fillColor = {3, 161, 252};
+    elementToColor.outlineColor = {3, 161, 252};
+    for (Connection &connectionToColor : elementToColor.connections) {
+      connectionToColor.color = {0, 0, 0};
+    }
+  }
+  backgroundColor = {255, 255, 255};
+}
+
 int main(int argc, char *argv[]) {
   CLI::App cliApp;
 
@@ -384,8 +413,9 @@ int main(int argc, char *argv[]) {
 
   std::ifstream ifs(filename);
   std::vector<Element> normalizedElements = {};
+  SDL_Color backgroundColor;
   if (parseRaw) {
-    if (parseInput(ifs, normalizedElements)) {
+    if (parseInput(ifs, normalizedElements, backgroundColor)) {
       std::cerr << statusMessages[RAW_PARSER_FAILURE];
       return RAW_PARSER_FAILURE;
     }
@@ -409,6 +439,7 @@ int main(int argc, char *argv[]) {
           << " ms." 
           << std::endl;
     }
+    defaultColor(normalizedElements, backgroundColor);
   }
   // Prepare draw data and draw
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -432,7 +463,7 @@ int main(int argc, char *argv[]) {
       SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
   convertNormToScreen(normalizedElements, screenW, screenH);
-  drawFrame(renderer, normalizedElements, drawColor);
+  drawFrame(renderer, normalizedElements, backgroundColor, drawColor);
 
   // Event loop
   bool isRunning = true;
@@ -495,7 +526,7 @@ int main(int argc, char *argv[]) {
         scaleViewport(scaleMouseWheel(event.wheel.y), normalizedElements);
       }
     }
-    drawFrame(renderer, normalizedElements, drawColor);
+    drawFrame(renderer, normalizedElements, backgroundColor, drawColor);
   }
   // Shutdown
   SDL_DestroyWindow(window);
