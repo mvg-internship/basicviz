@@ -172,11 +172,11 @@ int parseInput(
       element;
       element = element.next_sibling()) {
     Element parsedElement;
-    parsedElement.id = atoi(element.attribute(parserElementId).value());
-    parsedElement.nPoint.nX = std::stof(element.attribute(parserX).value());
-    parsedElement.nPoint.nY = std::stof(element.attribute(parserY).value());
-    parsedElement.nH = std::stof(element.attribute(parserHeight).value());
-    parsedElement.nW = std::stof(element.attribute(parserWidth).value());
+    parsedElement.id = element.attribute(parserElementId).as_int(-1);
+    parsedElement.nPoint.nX = element.attribute(parserX).as_float();
+    parsedElement.nPoint.nY = element.attribute(parserY).as_float();
+    parsedElement.nH = element.attribute(parserHeight).as_float();
+    parsedElement.nW = element.attribute(parserWidth).as_float();
 
     // Reading outline color from the document and if there is not one detected
     // Defaults to white RGB(255, 255, 255)
@@ -231,8 +231,8 @@ int parseInput(
           vertex;
           vertex = vertex.next_sibling()) {
         NormalizedPoint parsedVertex;
-        parsedVertex.nX = std::stof(vertex.attribute(parserX).value());
-        parsedVertex.nY = std::stof(vertex.attribute(parserY).value());
+        parsedVertex.nX = vertex.attribute(parserX).as_float();
+        parsedVertex.nY = vertex.attribute(parserY).as_float();
         parsedConnection.nVertices.push_back(parsedVertex);
       }
       parsedElement.connections.push_back(parsedConnection);
