@@ -179,7 +179,7 @@ int parseInput(
     parsedElement.nW = element.attribute(parserWidth).as_float();
 
     // Reading outline color from the document and if there is not one detected
-    // Defaults to white RGB(255, 255, 255)
+    // Defaults to cyan RGB(3, 161, 252)
     pugi::xml_node outlineColor = element.child(parserOutlineColor);
     if (outlineColor) {
       parsedElement.outlineColor.r = outlineColor.attribute(parserR).as_int();
@@ -187,21 +187,21 @@ int parseInput(
       parsedElement.outlineColor.b = outlineColor.attribute(parserB).as_int();
     }
     else {
-      parsedElement.outlineColor.r = 255;
-      parsedElement.outlineColor.g = 255;
-      parsedElement.outlineColor.b = 255;
+      parsedElement.outlineColor.r = 3;
+      parsedElement.outlineColor.g = 161;
+      parsedElement.outlineColor.b = 252;
     }
     // Reading fill color from the document and if there is not one detected
-    // Defaults to black RGB(0, 0, 0)
+    // Defaults to cyan RGB(3, 161, 252)
     pugi::xml_node fillColor = element.child(parserFillColor);
     if (fillColor) {
       parsedElement.fillColor.r = fillColor.attribute(parserR).as_int();
       parsedElement.fillColor.g = fillColor.attribute(parserG).as_int();
       parsedElement.fillColor.b = fillColor.attribute(parserB).as_int();
     } else {
-      parsedElement.fillColor.r = 0;
-      parsedElement.fillColor.g = 0;
-      parsedElement.fillColor.b = 0;
+      parsedElement.fillColor.r = 3;
+      parsedElement.fillColor.g = 161;
+      parsedElement.fillColor.b = 252;
     }
     // Parsing connections for given element
     pugi::xml_node connections = element.child(parserConnections);
@@ -214,16 +214,16 @@ int parseInput(
       parsedConnection.endElementId = atoi(connection.attribute(parserEndElement).value());
 
       // Reading color from the document and if there is not one detected
-      // Defaults to white RGB(255, 255, 255)
+      // Defaults to black RGB(0, 0, 0)
       pugi::xml_node color = connection.child(parserColor);
       if (color) {
         parsedConnection.color.r = color.attribute(parserR).as_int();
         parsedConnection.color.g = color.attribute(parserG).as_int();
         parsedConnection.color.b = color.attribute(parserB).as_int();
       } else {
-        parsedConnection.color.r = 255;
-        parsedConnection.color.g = 255;
-        parsedConnection.color.b = 255;
+        parsedConnection.color.r = 0;
+        parsedConnection.color.g = 0;
+        parsedConnection.color.b = 0;
       }
       // Parsing nVertices for given connection
       pugi::xml_node vertices = connection.child("vertices");
