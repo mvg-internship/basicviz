@@ -397,10 +397,10 @@ int main(int argc, char *argv[]) {
     }
     auto start = std::chrono::high_resolution_clock::now();
     net.assignLayers();
-    net.netTreeNodesToNormalizedElements(normalizedElements);
     if (processMinimize) {
       minimizeIntersections(net);
     }
+    net.netTreeNodesToNormalizedElements(normalizedElements);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
     if (showFPS) {
