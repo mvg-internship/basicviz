@@ -368,13 +368,13 @@ float scaleMouseWheel(const Sint32 mouseWheelY) {
 
 void defaultColor(std::vector<Element> &elementsToColor, SDL_Color &backgroundColor) {
   for (Element &elementToColor : elementsToColor) {
-    elementToColor.fillColor = {3, 161, 252};
-    elementToColor.outlineColor = {3, 161, 252};
+    elementToColor.fillColor = {3, 161, 252, 255};
+    elementToColor.outlineColor = {3, 161, 252, 255};
     for (Connection &connectionToColor : elementToColor.connections) {
-      connectionToColor.color = {0, 0, 0};
+      connectionToColor.color = {0, 0, 0, 255};
     }
   }
-  backgroundColor = {255, 255, 255};
+  backgroundColor = {255, 255, 255, 255};
 }
 
 int main(int argc, char *argv[]) {
@@ -441,7 +441,7 @@ int main(int argc, char *argv[]) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
     if (showFPS) {
       std::cout << "BENCH processing time: " 
-          << duration 
+          << duration
           << " ms." 
           << std::endl;
     }
