@@ -67,6 +67,7 @@ const std::string flagRaw = "--raw";
 const std::string flagCompact = "--compact";
 const std::string flagMinimize = "--minimize";
 const std::string flagColors = "--colors";
+const std::string flagDummy = "--dummy";
 
 float normalizedToScreenX(const float nX, const int screenW) {
   return nX * screenW;
@@ -409,6 +410,11 @@ int main(int argc, char *argv[]) {
       processMinimize, 
       "Minimize intersections")->excludes(cliRaw);
 
+  bool showDummy = false;
+  cliApp.add_flag(flagDummy, 
+      showDummy, 
+      "Show dummy nodes")->excludes(cliRaw);
+
   CLI11_PARSE(cliApp, argc, argv);
 
   std::ifstream ifs(filename);
@@ -430,7 +436,7 @@ int main(int argc, char *argv[]) {
     if (processMinimize) {
       minimizeIntersections(net);
     }
-    net.netTreeNodesToNormalizedElements(normalizedElements);
+    net.netTreeNodesToNormalizedElements(normalizedElements, showDummy);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
     if (showFPS) {

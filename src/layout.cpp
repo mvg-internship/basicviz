@@ -364,12 +364,17 @@ enum {
 void initPositionAndSize(
     std::vector<TreeNode> &nodes,
     std::vector<Element> &normalizedElements,
-    float nCellSize) {
+    float nCellSize,
+    bool initDummy) {
   for (TreeNode &node : nodes) {
     Element nElement = {};
     nElement.id = node.id;
 
     if (node.isDummy) {
+      if (!initDummy) {
+        continue;
+      }
+
       NormalizedPoint nPoint = {};
       nPoint.nX = nCellSize * node.number +
                   (nCellSize / ReductionWidth) / ReductionRelationToGap;
@@ -393,12 +398,25 @@ void initPositionAndSize(
   }
 }
 
+static TreeNode::Id
+traceVirtualNode(TreeNode::Id originId, const std::vector<TreeNode> &nodes) {
+  const TreeNode *node = nodes.data() + originId;
+  while (node->isDummy) {
+    node = nodes.data() + node->succ[0];
+  }
+  return node->id;
+}
+
 void initConnections(
-    std::vector<TreeNode> &nodes,
-    std::vector<Element> &normalizedElements) {
+    const std::vector<TreeNode> &nodes,
+    std::vector<Element> &normalizedElements,
+    bool initDummy) {
   int countConnections = 0;
   for (size_t i = 0; i < nodes.size(); i++) {
-    for (size_t &succId : nodes[i].succ) {
+    if (nodes[i].isDummy && !initDummy) {
+      continue;
+    }
+    for (size_t succId : nodes[i].succ) {
       Connection connection = {};
 
       connection.id = countConnections;
@@ -411,6 +429,9 @@ void initConnections(
       nPointStart.nY = normalizedElements[i].nPoint.nY +
                        normalizedElements[i].nH;
 
+      if (!initDummy) {
+        succId = traceVirtualNode(succId, nodes);
+      }
       NormalizedPoint nPointEnd = {};
       nPointEnd.nX = normalizedElements[succId].nPoint.nX +
                      normalizedElements[succId].nW / GetMiddle;
@@ -427,7 +448,8 @@ void initConnections(
 }
 
 void Net::netTreeNodesToNormalizedElements(
-    std::vector<Element> &normalizedElements) {
+    std::vector<Element> &normalizedElements,
+    bool showDummy) {
   float maxNumber = -1, maxLayer = -1;
   for (TreeNode &node : nodes) {
     if (node.layer > maxLayer) {
@@ -445,7 +467,7 @@ void Net::netTreeNodesToNormalizedElements(
     nCellSize = 1 / (maxNumber + 1);
   }
 
-  initPositionAndSize(nodes, normalizedElements, nCellSize);
+  initPositionAndSize(nodes, normalizedElements, nCellSize, showDummy);
 
-  initConnections(nodes, normalizedElements);
+  initConnections(nodes, normalizedElements, showDummy);
 }

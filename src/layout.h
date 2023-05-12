@@ -53,7 +53,8 @@ public:
 
   void assignLayers();
   void netTreeNodesToNormalizedElements(
-      std::vector<Element> &normalizedElements);
+      std::vector<Element> &normalizedElements,
+      bool showDummy);
 
   std::vector<std::vector<TreeNode::Id>> getNodesByLayer();
 };
