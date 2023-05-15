@@ -15,6 +15,7 @@
 #include <string>
 #include <fstream>
 #include <chrono>
+#include <limits>
 
 #include "layout.h"
 #include "netfmt_bench.h"
@@ -58,6 +59,8 @@ const char *const parserB = "b";
 const float zoomInScalingFactor = 1.1f;
 const float zoomOutScalingFactor = 0.9f;
 const float mouseWheelScalingFactor = 0.1f;
+
+const float inf = std::numeric_limits<float>::infinity();
 
 const unsigned int framesNum = 100;
 
@@ -295,10 +298,95 @@ void convertNormToScreen(
   }
 }
 
+float maxi(const float arr[], int n) {
+  float m = 0;
+  for (int i = 0; i < n; ++i)
+    if (m < arr[i])
+      m = arr[i];
+  return m;
+}
+
+float mini(const float arr[], int n) {
+  float m = 1;
+  for (int i = 0; i < n; ++i)
+    if (m > arr[i])
+      m = arr[i];
+  return m;
+}
+
+bool checkSegmentRectCollision(
+    SDL_FPoint &point1,
+    SDL_FPoint &point2,
+    const int screenW,
+    const int screenH) {
+  float x1 = point1.x;
+  float y1 = point1.y;
+  float x2 = point2.x;
+  float y2 = point2.y;
+
+  float p1 = -(x2 - x1);
+  float p2 = -p1;
+  float p3 = -(y2 - y1);
+  float p4 = -p3;
+  
+  float q1 = x1;
+  float q2 = screenW - x1;
+  float q3 = y1;
+  float q4 = screenH - y1;
+
+  float posarr[5], negarr[5];
+  int posind = 1, negind = 1;
+  posarr[0] = 1;
+  negarr[0] = 0;
+
+  if ((p1 == 0 && q1 < 0) || (p3 == 0 && q3 < 0)) {
+    return false;
+  }
+  if (p1 != 0) {
+    float r1 = q1 / p1;
+    float r2 = q2 / p2;
+    if (p1 < 0) {
+      negarr[negind++] = r1;
+      posarr[posind++] = r2;
+    } else {
+      negarr[negind++] = r2;
+      posarr[posind++] = r1;
+    }
+  }
+  if (p3 != 0) {
+    float r3 = q3 / p3;
+    float r4 = q4 / p4;
+    if (p3 < 0) {
+      negarr[negind++] = r3;
+      posarr[posind++] = r4;
+    } else {
+      negarr[negind++] = r4;
+      posarr[posind++] = r3;
+    }
+  }
+  float rn1, rn2;
+
+  rn1 = maxi(negarr, negind);
+  rn2 = mini(posarr, posind);
+
+  if (rn1 > rn2) {
+    return false;
+  }
+  point1.x = x1 + p2 * rn1;
+  point1.y = y1 + p4 * rn1;
+
+  point2.x = x1 + p2 * rn2;
+  point2.y = y1 + p4 * rn2;
+
+  return true;
+}
+
 void drawFrame(
     SDL_Renderer *renderer,
     const std::vector<Element> &elementsToDraw,
     const SDL_Color &backgroundColor,
+    const int screenW,
+    const int screenH,
     const bool drawColor) {
   drawBackground(renderer, backgroundColor, drawColor);
 
@@ -331,11 +419,20 @@ void drawFrame(
           SDL_ALPHA_OPAQUE);
       }
       for (size_t i = 1; i < connectionToDraw.scrVertices.size(); i++) {
-        SDL_RenderDrawLineF(renderer,
-          connectionToDraw.scrVertices[i - 1].x,
-          connectionToDraw.scrVertices[i - 1].y,
-          connectionToDraw.scrVertices[i].x,
-          connectionToDraw.scrVertices[i].y);
+        SDL_FPoint point1 = connectionToDraw.scrVertices[i - 1];
+        SDL_FPoint point2 = connectionToDraw.scrVertices[i];
+
+        bool collision = checkSegmentRectCollision(point1,
+            point2,
+            screenW,
+            screenH);
+        if (collision) {
+              SDL_RenderDrawLineF(renderer,
+                  point1.x,
+                  point1.y,
+                  point2.x,
+                  point2.y);
+        }
       }
     }
   }
@@ -469,7 +566,7 @@ int main(int argc, char *argv[]) {
       SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
   convertNormToScreen(normalizedElements, screenW, screenH);
-  drawFrame(renderer, normalizedElements, backgroundColor, drawColor);
+  drawFrame(renderer, normalizedElements, backgroundColor, screenW, screenH, drawColor);
 
   // Event loop
   bool isRunning = true;
@@ -532,7 +629,7 @@ int main(int argc, char *argv[]) {
         scaleViewport(scaleMouseWheel(event.wheel.y), normalizedElements);
       }
     }
-    drawFrame(renderer, normalizedElements, backgroundColor, drawColor);
+    drawFrame(renderer, normalizedElements, backgroundColor, screenW, screenH, drawColor);
   }
   // Shutdown
   SDL_DestroyWindow(window);
