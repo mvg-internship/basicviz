@@ -110,7 +110,7 @@ void ScreenType::setType(Type type) {
     textureRect = {0, 2122, 505, 278};
     break;
   case DFF:
-    textureRect = {0, 0, 607, 321};
+    textureRect = {0, 1176, 512, 506};
     break;
   default:
     break;
