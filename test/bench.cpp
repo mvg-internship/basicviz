@@ -52,6 +52,7 @@ public:
   {
     gate_lines.emplace_back( inputs, output, type );
     ++_stats.number_of_lines;
+    std::cout << type << std::endl;
   }
 
   virtual void on_assign( const std::string& input, const std::string& output ) const override
