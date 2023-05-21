@@ -19,6 +19,7 @@ struct TreeNode {
   std::vector<Id> succ = {};
   std::vector<Id> pred = {};
   Id id = 0;
+  Type type = NONE;
   int layer = 0;
   int number = 0;
   bool isDummy = false;
@@ -42,7 +43,7 @@ public:
   const std::vector<Id> &getSuccessors(Id id) const;
   const std::vector<Id> &getPredecessors(Id id) const;
 
-  Id addNode();
+  Id addNode(Type type);
 
   TreeNode *getNode(Id id) {
     const Net &net = *this;

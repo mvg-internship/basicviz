@@ -71,6 +71,12 @@ const std::string flagCompact = "--compact";
 const std::string flagMinimize = "--minimize";
 const std::string flagColors = "--colors";
 const std::string flagDummy = "--dummy";
+const std::string flagTexture = "--texturize";
+
+const std::string texturePath = 
+    std::string(ROOT_DIR) + 
+    std::string("/assets/img/gates.bmp");
+SDL_Texture *gatesTexture = NULL;
 
 float normalizedToScreenX(const float nX, const int screenW) {
   return nX * screenW;
@@ -78,6 +84,41 @@ float normalizedToScreenX(const float nX, const int screenW) {
 
 float normalizedToScreenY(const float nY, const int screenH) {
   return nY * screenH;
+}
+
+void ScreenType::setType(Type type) {
+  switch (type) {
+  case INPUT:
+    textureRect = {0, 1838, 604, 186};
+    break;
+  case OUTPUT:
+    textureRect = {988, 1838, 604, 186};
+    break;
+  case AND:
+    textureRect = {0, 0, 607, 321};
+    break;
+  case NAND:
+    textureRect = {832, 0, 653, 321};
+    break;
+  case OR:
+    textureRect = {30, 701, 623, 321};
+    break;
+  case NOR:
+    textureRect = {861, 701, 672, 321};
+    break;
+  case NOT:
+    textureRect = {0, 2122, 505, 278};
+    break;
+  case DFF:
+    textureRect = {0, 0, 607, 321};
+    break;
+  default:
+    break;
+  }
+}
+
+Type ScreenType::getType() const {
+  return type;
 }
 
 void Element::move(const int dx, const int dy) {
@@ -387,13 +428,14 @@ void drawFrame(
     const SDL_Color &backgroundColor,
     const int screenW,
     const int screenH,
-    const bool drawColor) {
+    const bool drawColor,
+    const bool texturize) {
   drawBackground(renderer, backgroundColor, drawColor);
 
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 
   for (const Element &elementToDraw : elementsToDraw) {
-    if (drawColor) {
+    if (drawColor && !texturize) {
       SDL_SetRenderDrawColor(renderer,
         elementToDraw.fillColor.r,
         elementToDraw.fillColor.g,
@@ -407,9 +449,14 @@ void drawFrame(
         elementToDraw.outlineColor.b,
         SDL_ALPHA_OPAQUE);
     }
-    
-    SDL_RenderDrawRectF(renderer, &elementToDraw.scrRect);
-
+    if (texturize) {
+      SDL_RenderCopyF(renderer,
+          gatesTexture,
+          &elementToDraw.scrType.textureRect,
+          &elementToDraw.scrRect);
+    } else {
+      SDL_RenderDrawRectF(renderer, &elementToDraw.scrRect);
+    }
     for (const Connection &connectionToDraw : elementToDraw.connections) {
       if (drawColor) {
         SDL_SetRenderDrawColor(renderer,
@@ -475,6 +522,7 @@ void defaultColor(std::vector<Element> &elementsToColor, SDL_Color &backgroundCo
 }
 
 int main(int argc, char *argv[]) {
+  std::cout << ROOT_DIR;
   CLI::App cliApp;
 
   std::string filename;
@@ -511,6 +559,11 @@ int main(int argc, char *argv[]) {
   cliApp.add_flag(flagDummy, 
       showDummy, 
       "Show dummy nodes")->excludes(cliRaw);
+
+  bool texturize = false;
+  cliApp.add_flag(flagTexture, 
+      texturize, 
+      "Texturize nodes");
 
   CLI11_PARSE(cliApp, argc, argv);
 
@@ -564,9 +617,12 @@ int main(int argc, char *argv[]) {
       SDL_CreateWindow("test-viz", 0, 0, screenW, screenH, SDL_WINDOW_SHOWN);
   SDL_Renderer *renderer = 
       SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  SDL_Surface *gatesSurface = SDL_LoadBMP(texturePath.c_str());
+  gatesTexture = SDL_CreateTextureFromSurface(renderer, gatesSurface);
+  SDL_FreeSurface(gatesSurface);
 
   convertNormToScreen(normalizedElements, screenW, screenH);
-  drawFrame(renderer, normalizedElements, backgroundColor, screenW, screenH, drawColor);
+  drawFrame(renderer, normalizedElements, backgroundColor, screenW, screenH, drawColor, texturize);
 
   // Event loop
   bool isRunning = true;
@@ -629,10 +685,12 @@ int main(int argc, char *argv[]) {
         scaleViewport(scaleMouseWheel(event.wheel.y), normalizedElements);
       }
     }
-    drawFrame(renderer, normalizedElements, backgroundColor, screenW, screenH, drawColor);
+    drawFrame(renderer, normalizedElements, backgroundColor, screenW, screenH, drawColor, texturize);
   }
   // Shutdown
   SDL_DestroyWindow(window);
+  SDL_DestroyRenderer(renderer);
+  SDL_DestroyTexture(gatesTexture);
   SDL_Quit();
   return 0;
 }

@@ -294,10 +294,11 @@ void addAllDummyNodes(
   }
 }
 
-TreeNode::Id Net::addNode() {
+TreeNode::Id Net::addNode(Type type) {
   Id id = static_cast<Id>(nodes.size());
   nodes.emplace_back();
   nodes.back().id = id;
+  nodes.back().type = type;
 
   return id;
 }
@@ -369,6 +370,7 @@ void initPositionAndSize(
   for (TreeNode &node : nodes) {
     Element nElement = {};
     nElement.id = node.id;
+    nElement.scrType.setType(node.type);
 
     if (node.isDummy) {
       if (!initDummy) {

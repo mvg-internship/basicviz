@@ -11,6 +11,29 @@
 
 #include <SDL.h>
 
+enum Type {
+  NONE = 0,
+  INPUT,
+  OUTPUT,
+  NOT,
+  AND,
+  OR,
+  NAND,
+  NOR,
+  DFF
+};
+
+struct ScreenType {
+  SDL_Rect textureRect;
+
+  ScreenType(): type(NONE) {}
+  void setType(Type type);
+  Type getType() const;
+
+private:
+  Type type;
+};
+
 struct NormalizedPoint {
   float nX;
   float nY;
@@ -42,6 +65,7 @@ struct Element {
   SDL_Color outlineColor;
   SDL_Color fillColor;
   std::vector<Connection> connections;
+  ScreenType scrType;
 
   Element(): id(-1), nW(0), nH(0) {
     outlineColor = {255, 255, 255, 255};
