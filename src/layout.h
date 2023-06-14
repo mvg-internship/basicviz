@@ -10,6 +10,7 @@
 #define LAYOUT_H_
 
 #include <vector>
+#include <algorithm>
 
 #include "main.h"
 
