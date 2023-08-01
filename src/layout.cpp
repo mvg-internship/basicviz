@@ -183,7 +183,6 @@ void greedyFAS(
 // Assigning a layer and numbers in this layer for each vertex of the graph
 void algorithmASAP(
     std::vector<TreeNode> &nodes,
-    std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges,
     std::vector<int> &lensLayer) {
   std::vector<int> removedNodes(nodes.size(), -1);
 
@@ -217,11 +216,6 @@ void algorithmASAP(
     }
     lensLayer.push_back(nodesInLayer);
     nodesInLayer = 0;
-  }
-
-  for (auto [src, dst] : deletedEdges) {
-    nodes[src].succ.push_back(dst);
-    nodes[dst].pred.push_back(src);
   }
 }
 
@@ -346,6 +340,9 @@ const TreeNode *Net::getNode(TreeNode::Id id) const {
 
 bool comparatorPred(std::pair<TreeNode::Id, size_t> f,
                     std::pair<TreeNode::Id, size_t> s) {
+  if (f.second == s.second) {
+    return f.first > s.first;
+  }
   return f.second > s.second;
 }
 
@@ -364,13 +361,25 @@ void getIdOrderPred(std::vector<TreeNode> &nodes,
   }
 }
 
+void selectIdAllSuccPlaced(TreeNode::Id &selectedId,
+                           std::vector<int> &nodesUnplacedSucc,
+                           std::vector<TreeNode::Id> &orderedId) {
+  size_t i;
+  for (i = 0; i < orderedId.size(); i++) {
+    if (nodesUnplacedSucc[orderedId[i]] == 0) {
+      break;
+    }
+  }
+  selectedId = orderedId[i];
+  nodesUnplacedSucc[orderedId[i]] = -1;
+}
+
 bool allSuccInPrevLayers(std::vector<TreeNode> &nodes,
-                         std::vector<TreeNode::Id> &currentLayer,
+                         std::vector<bool> &nodesInCurrentLayer,
                          TreeNode::Id id) {
   bool allSuccInPrevLayers = true;
   for (size_t succId : nodes[id].succ) {
-    if (std::find(currentLayer.begin(), currentLayer.end(), succId) !=
-        currentLayer.end()) {
+    if (nodesInCurrentLayer[succId]) {
       allSuccInPrevLayers = false;
       break;
     }
@@ -380,48 +389,52 @@ bool allSuccInPrevLayers(std::vector<TreeNode> &nodes,
 
 void algorithmCoffmanGraham(
     std::vector<TreeNode> &nodes,
-    std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges,
     std::vector<int> &lensLayer, size_t w) {
-  std::vector<TreeNode::Id> orderedId;
+  std::vector<TreeNode::Id> orderedId = {};
   getIdOrderPred(nodes, orderedId);
-
+	
   std::vector<std::vector<TreeNode::Id>> prevLayers = {};
-  std::vector<TreeNode::Id> currentLayer = {};
   size_t countLayers = 0;
+  std::vector<TreeNode::Id> currentLayer = {};
+  
+  std::vector<bool> nodesInCurrentLayer = {};
+  nodesInCurrentLayer.resize(nodes.size(), false);
 
-  std::vector<size_t> nodesUnplacedSucc = {};
+  std::vector<int> nodesUnplacedSucc = {};
   for (size_t i = 0; i < nodes.size(); i++) {
-    nodesUnplacedSucc.push_back(nodes[i].succ.size());
+    nodesUnplacedSucc.push_back(static_cast<int>(nodes[i].succ.size()));
   }
 
   size_t placedCount = 0;
   while (placedCount < nodes.size()) {
-    size_t i;
-    for (i = 0; i < orderedId.size(); i++) {
-      if (nodesUnplacedSucc[orderedId[i]] == 0) {
-        break;
-      }
-    }
-
+    TreeNode::Id selectedId;
+    selectIdAllSuccPlaced(selectedId, nodesUnplacedSucc, orderedId);
+    
     if (currentLayer.size() < w &&
-        allSuccInPrevLayers(nodes, currentLayer, orderedId[i])) {
-      currentLayer.push_back(orderedId[i]);
+        allSuccInPrevLayers(nodes, nodesInCurrentLayer, selectedId)) {
+      currentLayer.push_back(selectedId);
+      
+      nodesInCurrentLayer[selectedId] = true;
     } else {
       prevLayers.push_back(currentLayer);
-      currentLayer = {};
-      currentLayer.push_back(orderedId[i]);
       countLayers++;
+      
+      currentLayer = {};
+      currentLayer.push_back(selectedId);
+      
+      nodesInCurrentLayer = {};
+      nodesInCurrentLayer.resize(nodes.size(), false);
+      nodesInCurrentLayer[selectedId] = true;
     }
 
-    nodes[orderedId[i]].layer = countLayers;
-    nodes[orderedId[i]].number = static_cast<int>(currentLayer.size()) - 1;
+    nodes[selectedId].layer = countLayers;
+    nodes[selectedId].number = static_cast<int>(currentLayer.size()) - 1;
 
-    for (size_t predId : nodes[orderedId[i]].pred) {
+    for (size_t predId : nodes[selectedId].pred) {
       nodesUnplacedSucc[predId]--;
     }
 
     placedCount++;
-    orderedId.erase(orderedId.begin() + i);
   }
   prevLayers.push_back(currentLayer);
 
@@ -433,22 +446,52 @@ void algorithmCoffmanGraham(
     lensLayer.push_back(
         static_cast<int>(prevLayers[prevLayers.size() - i - 1].size()));
   }
+}
 
-  for (auto [src, dst] : deletedEdges) {
-    nodes[src].succ.push_back(dst);
-    nodes[dst].pred.push_back(src);
+bool checkingSuccInNextLayers(std::vector<TreeNode> &nodes) {
+  for (TreeNode &node : nodes) {
+    for (TreeNode::Id succId : node.succ) {
+      if (node.layer >= nodes[succId].layer) {
+        return false;
+      }
+    }
   }
+  return true;
+}
+
+bool checkingWidthLimit(std::vector<TreeNode> &nodes, size_t width) {
+  for (TreeNode &node : nodes) {
+    if (node.number >= width) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool vertexPlacedCorrectly(std::vector<TreeNode> &nodes, size_t width) {
+  if (!checkingSuccInNextLayers(nodes)) {
+    return false;
+  }
+  if (!checkingWidthLimit(nodes, width)) {
+    return false;
+  }
+  return true;
 }
 
 // Assigning a layer and a number, introducing dummy vertices
-void Net::assignLayers() {
+void Net::assignLayers(size_t widthLimitation) {
   std::vector<std::pair<TreeNode::Id, TreeNode::Id>> deletedEdges = {};
   greedyFAS(nodes, deletedEdges);
 
   std::vector<int> lensLayer = {};
-  // algorithmASAP(nodes, deletedEdges, lensLayer);
-  algorithmCoffmanGraham(nodes, deletedEdges, lensLayer, 20);
-
+  // algorithmASAP(nodes, lensLayer);
+  algorithmCoffmanGraham(nodes, lensLayer, widthLimitation);
+  
+  for (auto [src, dst] : deletedEdges) {
+    nodes[src].succ.push_back(dst);
+    nodes[dst].pred.push_back(src);
+  }
+  
   addAllDummyNodes(nodes, lensLayer);
 }
 

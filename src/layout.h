@@ -52,7 +52,7 @@ public:
 
   const TreeNode *getNode(Id id) const;
 
-  void assignLayers();
+  void assignLayers(size_t widthLimitation);
   void netTreeNodesToNormalizedElements(
       std::vector<Element> &normalizedElements,
       bool showDummy);

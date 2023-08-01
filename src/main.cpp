@@ -1,3 +1,4 @@
+
 //===----------------------------------------------------------------------===//
 //
 // Part of the Utopia EDA Project, under the Apache License v2.0
@@ -72,6 +73,7 @@ const std::string flagMinimize = "--minimize";
 const std::string flagColors = "--colors";
 const std::string flagDummy = "--dummy";
 const std::string flagTexture = "--texturize";
+const std::string flagWidthLimitation = "--limit";
 
 const std::string texturePath = 
     std::string(ROOT_DIR) + 
@@ -565,6 +567,11 @@ int main(int argc, char *argv[]) {
       texturize, 
       "Texturize nodes");
 
+  size_t widthLimitation = 1000;
+  cliApp.add_option(flagWidthLimitation, 
+      widthLimitation, 
+      "Graph width limitation");
+  
   CLI11_PARSE(cliApp, argc, argv);
 
   std::ifstream ifs(filename);
@@ -582,7 +589,7 @@ int main(int argc, char *argv[]) {
       return BENCH_READER_ERROR;
     }
     auto start = std::chrono::high_resolution_clock::now();
-    net.assignLayers();
+    net.assignLayers(widthLimitation);
     if (processMinimize) {
       minimizeIntersections(net);
     }
