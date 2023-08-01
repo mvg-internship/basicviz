@@ -347,11 +347,14 @@ bool comparatorPred(std::pair<TreeNode::Id, size_t> f,
 }
 
 void getIdOrderPred(std::vector<TreeNode> &nodes,
-                    std::vector<TreeNode::Id> &orderedId) {
+                    std::vector<TreeNode::Id> &orderedId,
+                    std::vector<TreeNode::Id> &sourcesNodes) {
   std::vector<std::pair<TreeNode::Id, size_t>> pi = {};
   for (TreeNode &node : nodes) {
-    auto idAndPred = std::make_pair(node.id, node.pred.size());
-    pi.push_back(idAndPred);
+    if (std::find(sourcesNodes.begin(), sourcesNodes.end(), node.id) == sourcesNodes.end()) {
+      auto idAndPred = std::make_pair(node.id, node.pred.size());
+      pi.push_back(idAndPred);
+    }
   }
   std::sort(pi.begin(), pi.end(), comparatorPred);
 
@@ -389,9 +392,11 @@ bool allSuccInPrevLayers(std::vector<TreeNode> &nodes,
 
 void algorithmCoffmanGraham(
     std::vector<TreeNode> &nodes,
-    std::vector<int> &lensLayer, size_t w) {
+    std::vector<TreeNode::Id> &sourcesNodes,
+    std::vector<int> &lensLayer, 
+    size_t w) {
   std::vector<TreeNode::Id> orderedId = {};
-  getIdOrderPred(nodes, orderedId);
+  getIdOrderPred(nodes, orderedId, sourcesNodes);
 	
   std::vector<std::vector<TreeNode::Id>> prevLayers = {};
   size_t countLayers = 0;
@@ -435,6 +440,15 @@ void algorithmCoffmanGraham(
     }
 
     placedCount++;
+  }
+  prevLayers.push_back(currentLayer);
+  countLayers++;
+  
+  currentLayer = {};
+  for (TreeNode::Id sourceId : sourcesNodes) {
+    currentLayer.push_back(sourceId);
+    nodes[sourceId].layer = countLayers;
+    nodes[sourceId].number = static_cast<int>(currentLayer.size()) - 1;
   }
   prevLayers.push_back(currentLayer);
 
@@ -481,11 +495,18 @@ bool vertexPlacedCorrectly(std::vector<TreeNode> &nodes, size_t width) {
 // Assigning a layer and a number, introducing dummy vertices
 void Net::assignLayers(size_t widthLimitation) {
   std::vector<std::pair<TreeNode::Id, TreeNode::Id>> deletedEdges = {};
+  std::vector<TreeNode::Id> sourcesNodes = {};
+  for (TreeNode &node : nodes) {
+    if (node.pred.size() == 0) {
+      sourcesNodes.push_back(node.id);
+    }
+  }
+  
   greedyFAS(nodes, deletedEdges);
 
   std::vector<int> lensLayer = {};
   // algorithmASAP(nodes, lensLayer);
-  algorithmCoffmanGraham(nodes, lensLayer, widthLimitation);
+  algorithmCoffmanGraham(nodes, sourcesNodes, lensLayer, widthLimitation);
   
   for (auto [src, dst] : deletedEdges) {
     nodes[src].succ.push_back(dst);
