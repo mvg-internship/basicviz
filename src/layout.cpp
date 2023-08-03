@@ -462,6 +462,40 @@ void algorithmCoffmanGraham(
   }
 }
 
+bool checkingNodesId(std::vector<TreeNode> &nodes, 
+                     size_t oldCountNodes) {
+  if (nodes.size() != oldCountNodes) {
+    return false;
+  }
+  for (size_t i = 0; i < nodes.size(); i++) {
+    if (nodes[i].id != i) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool checkingConnection(
+    std::vector<TreeNode> &nodes, 
+    std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &oldConnections) {
+  size_t countNewConnections = 0;
+  for (TreeNode &node : nodes) {
+    countNewConnections += node.succ.size();
+  }
+  if (countNewConnections != oldConnections.size()) {
+    return false;
+  }
+  for (auto [src, dst] : oldConnections) {
+    if (std::find(nodes[src].succ.begin(), nodes[src].succ.end(), dst) 
+        == nodes[src].succ.end() ||
+        std::find(nodes[dst].pred.begin(), nodes[dst].pred.end(), src) 
+        == nodes[dst].pred.end()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool checkingSuccInNextLayers(std::vector<TreeNode> &nodes) {
   for (TreeNode &node : nodes) {
     for (TreeNode::Id succId : node.succ) {
@@ -475,26 +509,56 @@ bool checkingSuccInNextLayers(std::vector<TreeNode> &nodes) {
 
 bool checkingWidthLimit(std::vector<TreeNode> &nodes, size_t width) {
   for (TreeNode &node : nodes) {
-    if (node.number >= width) {
+    if (node.number >= width && node.layer != 0) {
       return false;
     }
   }
   return true;
 }
 
-bool vertexPlacedCorrectly(std::vector<TreeNode> &nodes, size_t width) {
+bool checkingCoordinates(
+    std::vector<TreeNode> &nodes, 
+    std::vector<std::pair<int, int>> &manuallyCoordinates) {
+  for (size_t i = 0; i < nodes.size(); i++) {
+    if (nodes[i].layer != manuallyCoordinates[i].first || 
+        nodes[i].number != manuallyCoordinates[i].second) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool nodesPlacedCorrectly(
+    std::vector<TreeNode> &nodes, 
+    size_t width,
+    size_t oldCountNodes,
+    std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &oldConnections,
+    std::vector<std::pair<int, int>> &manuallyCoordinates) {
+  if (!checkingNodesId(nodes, oldCountNodes)) {
+    return false;
+  }
+  if (!checkingConnection(nodes, oldConnections)) {
+    return false;
+  }
+  if (cycleExistsDFS(nodes)) {
+    return false;
+  }
   if (!checkingSuccInNextLayers(nodes)) {
     return false;
   }
   if (!checkingWidthLimit(nodes, width)) {
     return false;
   }
+  if (manuallyCoordinates.size() != 0) {
+    if (!checkingCoordinates(nodes, manuallyCoordinates)) {
+      return false;
+    }
+  }
   return true;
 }
 
 // Assigning a layer and a number, introducing dummy vertices
-void Net::assignLayers(size_t widthLimitation) {
-  std::vector<std::pair<TreeNode::Id, TreeNode::Id>> deletedEdges = {};
+void Net::assignLayers(size_t widthLimitation, bool testNodesPlacement) {
   std::vector<TreeNode::Id> sourcesNodes = {};
   for (TreeNode &node : nodes) {
     if (node.pred.size() == 0) {
@@ -502,11 +566,36 @@ void Net::assignLayers(size_t widthLimitation) {
     }
   }
   
+  std::vector<std::pair<TreeNode::Id, TreeNode::Id>> deletedEdges = {};
   greedyFAS(nodes, deletedEdges);
-
+  
   std::vector<int> lensLayer = {};
-  // algorithmASAP(nodes, lensLayer);
-  algorithmCoffmanGraham(nodes, sourcesNodes, lensLayer, widthLimitation);
+  
+  if (testNodesPlacement) {
+    size_t oldCountNodes = nodes.size();
+    std::vector<std::pair<TreeNode::Id, TreeNode::Id>> oldConnections = {};
+    for (TreeNode &node : nodes) {
+      for (TreeNode::Id succId : node.succ) {
+        auto connection = std::make_pair(node.id, succId);
+        oldConnections.push_back(connection);
+      }
+    }
+    std::vector<std::pair<int, int>> manuallyCoordinates = {};
+    
+    algorithmCoffmanGraham(nodes, sourcesNodes, lensLayer, widthLimitation);
+  
+    if (nodesPlacedCorrectly(nodes, 
+                             widthLimitation, 
+                             oldCountNodes, 
+                             oldConnections, 
+                             manuallyCoordinates)) {
+      printf("\nSuccess: Nodes are plased correctly\n");
+    } else {
+      printf("\nFail\n");
+    }
+  } else {
+    algorithmCoffmanGraham(nodes, sourcesNodes, lensLayer, widthLimitation);
+  }
   
   for (auto [src, dst] : deletedEdges) {
     nodes[src].succ.push_back(dst);

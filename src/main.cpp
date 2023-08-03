@@ -74,6 +74,7 @@ const std::string flagColors = "--colors";
 const std::string flagDummy = "--dummy";
 const std::string flagTexture = "--texturize";
 const std::string flagWidthLimitation = "--limit";
+const std::string flagTestNodesPlacement = "--testNodesPlacement";
 
 const std::string texturePath = 
     std::string(ROOT_DIR) + 
@@ -572,6 +573,11 @@ int main(int argc, char *argv[]) {
       widthLimitation, 
       "Graph width limitation");
   
+  bool testNodesPlacement = false;
+  cliApp.add_flag(flagTestNodesPlacement, 
+      testNodesPlacement, 
+      "Testing nodes placement");  
+  
   CLI11_PARSE(cliApp, argc, argv);
 
   std::ifstream ifs(filename);
@@ -589,7 +595,7 @@ int main(int argc, char *argv[]) {
       return BENCH_READER_ERROR;
     }
     auto start = std::chrono::high_resolution_clock::now();
-    net.assignLayers(widthLimitation);
+    net.assignLayers(widthLimitation, testNodesPlacement);
     if (processMinimize) {
       minimizeIntersections(net);
     }
