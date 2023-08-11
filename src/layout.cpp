@@ -393,7 +393,7 @@ bool allSuccInPrevLayers(std::vector<TreeNode> &nodes,
 void algorithmCoffmanGraham(
     std::vector<TreeNode> &nodes,
     std::vector<TreeNode::Id> &sourcesNodes,
-    std::vector<int> &lensLayer, 
+    std::vector<std::vector<TreeNode::Id>> &positionsOfId, 
     size_t w) {
   std::vector<TreeNode::Id> orderedId = {};
   getIdOrderPred(nodes, orderedId, sourcesNodes);
@@ -411,7 +411,7 @@ void algorithmCoffmanGraham(
   }
 
   size_t placedCount = 0;
-  while (placedCount < nodes.size()) {
+  while (placedCount < nodes.size() - sourcesNodes.size()) {
     TreeNode::Id selectedId;
     selectIdAllSuccPlaced(selectedId, nodesUnplacedSucc, orderedId);
     
@@ -455,10 +455,10 @@ void algorithmCoffmanGraham(
   for (TreeNode &node : nodes) {
     node.layer = static_cast<int>(prevLayers.size()) - node.layer - 1;
   }
-
+  
+  positionsOfId = {};
   for (size_t i = 0; i < prevLayers.size(); i++) {
-    lensLayer.push_back(
-        static_cast<int>(prevLayers[prevLayers.size() - i - 1].size()));
+    positionsOfId.push_back(prevLayers[prevLayers.size() - i - 1]);
   }
 }
 
@@ -557,6 +557,133 @@ bool nodesPlacedCorrectly(
   return true;
 }
 
+void shiftBottomLayers(
+    std::vector<TreeNode> &nodes, 
+    std::vector<std::vector<TreeNode::Id>> &positionsOfId, 
+    size_t layer) {
+  for (size_t i = layer + 1; i < positionsOfId.size(); i++) {
+    for (TreeNode::Id id : positionsOfId[i])
+    {
+      nodes[id].layer += 1;
+    }
+  }
+  
+  std::vector<TreeNode::Id> voidLayer = {};
+  positionsOfId.push_back(voidLayer);
+  
+  for (size_t i = positionsOfId.size() - 1; i > layer + 1; i--) {
+    positionsOfId[i] = positionsOfId[i - 1];
+  }
+  
+  positionsOfId[layer + 1] = voidLayer;
+}
+
+size_t minWidthLimitation(
+    std::vector<TreeNode> &nodes, 
+    std::vector<std::vector<TreeNode::Id>> &positionsOfId, 
+    std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges) {
+  size_t maxCountConnections = 0;
+  size_t maxCountNodes = 0;
+  for (std::vector<TreeNode::Id> layer : positionsOfId) {
+    if (layer.size() > maxCountNodes) {
+      maxCountNodes = layer.size();
+    } 
+    size_t maxIn = 0;
+    size_t maxOut = 0;
+    for (TreeNode::Id id : layer) {
+      maxIn += nodes[id].pred.size();
+      maxOut += nodes[id].succ.size();
+      /*
+      for (auto [src, dst] : deletedEdges) {
+        if (id == src) {
+          maxIn += 1;
+        }
+        if (id == dst) {
+          maxOut += 1;
+        }
+      }
+      */
+    }
+    if (maxIn > maxOut && maxIn > maxCountConnections) {
+      maxCountConnections = maxIn;
+    }
+    if (maxOut > maxIn && maxOut > maxCountConnections) {
+      maxCountConnections = maxOut;
+    }
+  }
+  return maxCountConnections + maxCountNodes;
+}
+
+void appendDummyNodeInNextLayer(
+    std::vector<TreeNode> &nodes, 
+    std::vector<std::vector<TreeNode::Id>> &positionsOfId, 
+    TreeNode::Id id, 
+    TreeNode::Id succId) {
+  TreeNode dummyNode;
+  dummyNode.id = nodes.size();
+  dummyNode.isDummy = true;
+  dummyNode.layer = nodes[id].layer + 1;
+  dummyNode.number = positionsOfId[dummyNode.layer].size();
+  dummyNode.pred.push_back(id);
+  dummyNode.succ.push_back(succId);
+  
+  nodes[id].succ.erase(
+    std::remove(nodes[id].succ.begin(), nodes[id].succ.end(), succId), 
+    nodes[id].succ.end());
+  nodes[id].succ.push_back(dummyNode.id);
+  
+  nodes[succId].pred.erase(
+    std::remove(nodes[succId].pred.begin(), nodes[succId].pred.end(), id), 
+    nodes[succId].pred.end());
+  nodes[succId].pred.push_back(dummyNode.id);
+  
+  positionsOfId[dummyNode.layer].push_back(dummyNode.id);
+  nodes.push_back(dummyNode);
+}
+
+void newAddDummyNodes(
+    std::vector<TreeNode> &nodes, 
+    std::vector<std::vector<TreeNode::Id>> &positionsOfId, 
+    size_t width) {
+  for (size_t i = 0; i < positionsOfId.size(); i++) {
+    for (TreeNode::Id id : positionsOfId[i]) {
+      for (TreeNode::Id succId : nodes[id].succ) {
+        if (nodes[succId].layer - nodes[id].layer > 1) {
+          if (positionsOfId[i + 1].size() == width) {
+            shiftBottomLayers(nodes, positionsOfId, i + 1);
+            size_t number = 0;
+            for (size_t j = 0; j < positionsOfId[i + 1].size(); j++) {
+              if (nodes[positionsOfId[i + 1][j]].pred.size() < 
+                  nodes[positionsOfId[i + 1][number]].pred.size()) {
+                number = j;
+              }
+            }
+            if (nodes[positionsOfId[i + 1][number]].pred.size() > 0) {
+              printf("Error: hopeless situation\n");
+            }
+            
+            nodes[positionsOfId[i + 1][number]].layer += 1;
+            nodes[positionsOfId[i + 1][number]].number = 0;
+            positionsOfId[i + 2].push_back(positionsOfId[i + 1][number]);
+            
+            for (size_t j = number; j < positionsOfId[i + 1].size() - 1; j++) {
+              nodes[positionsOfId[i + 1][j + 1]].number--;
+              positionsOfId[i + 1][j] = positionsOfId[i + 1][j + 1];
+            }
+            positionsOfId[i + 1].erase(positionsOfId[i + 1].end() - 1);
+            
+            appendDummyNodeInNextLayer(nodes, positionsOfId, id, succId);
+          }
+          if (positionsOfId[i + 1].size() < width) {
+            appendDummyNodeInNextLayer(nodes, positionsOfId, id, succId);
+          }
+        }
+        // For backwards edges: if (nodes[succId] - nodes[id] < 1)
+      }
+    }
+  }
+}
+ 
 // Assigning a layer and a number, introducing dummy vertices
 void Net::assignLayers(size_t widthLimitation, bool testNodesPlacement) {
   std::vector<TreeNode::Id> sourcesNodes = {};
@@ -569,7 +696,7 @@ void Net::assignLayers(size_t widthLimitation, bool testNodesPlacement) {
   std::vector<std::pair<TreeNode::Id, TreeNode::Id>> deletedEdges = {};
   greedyFAS(nodes, deletedEdges);
   
-  std::vector<int> lensLayer = {};
+  std::vector<std::vector<TreeNode::Id>> positionsOfId = {};
   
   if (testNodesPlacement) {
     size_t oldCountNodes = nodes.size();
@@ -582,7 +709,7 @@ void Net::assignLayers(size_t widthLimitation, bool testNodesPlacement) {
     }
     std::vector<std::pair<int, int>> manuallyCoordinates = {};
     
-    algorithmCoffmanGraham(nodes, sourcesNodes, lensLayer, widthLimitation);
+    algorithmCoffmanGraham(nodes, sourcesNodes, positionsOfId, widthLimitation);
   
     if (nodesPlacedCorrectly(nodes, 
                              widthLimitation, 
@@ -594,15 +721,31 @@ void Net::assignLayers(size_t widthLimitation, bool testNodesPlacement) {
       printf("\nFail\n");
     }
   } else {
-    algorithmCoffmanGraham(nodes, sourcesNodes, lensLayer, widthLimitation);
+    algorithmCoffmanGraham(nodes, sourcesNodes, positionsOfId, widthLimitation);
   }
   
+  printf("The minimum width limit: %lu \n", minWidthLimitation(nodes, positionsOfId, deletedEdges));
+  widthLimitation = minWidthLimitation(nodes, positionsOfId, deletedEdges);
+  
+  /*
   for (auto [src, dst] : deletedEdges) {
     nodes[src].succ.push_back(dst);
     nodes[dst].pred.push_back(src);
   }
+  */
   
-  addAllDummyNodes(nodes, lensLayer);
+  std::vector<int> lensLayer = {};
+  for (std::vector<TreeNode::Id> &layer : positionsOfId) {
+    for (TreeNode::Id id : layer) {
+      printf("%lu ", id);
+    }
+    printf("\n");
+    lensLayer.push_back(static_cast<int>(layer.size()));
+  }
+  
+  newAddDummyNodes(nodes, positionsOfId, widthLimitation);
+  
+  // addAllDummyNodes(nodes, lensLayer);
 }
 
 enum {
