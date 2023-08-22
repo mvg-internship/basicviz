@@ -629,6 +629,9 @@ int promoteNode(
       }
     }
     layering[id] -= 1;
+    if (layering[id] < 1) {
+      dummyDiff += 10000;
+    }
     dummyDiff += nodes[id].succ.size() - nodes[id].pred.size();
     return dummyDiff;
 }
@@ -656,15 +659,8 @@ void layeringPromotion(
     }
   }
   
-  int minLayer = 1;
-  for (int layerNode : layering) {
-    if (layerNode < minLayer) {
-      minLayer = layerNode;
-    }
-  }
   int maxLayer = 0;
   for (int &layerNode : layering) {
-    layerNode -= minLayer;
     if (layerNode > maxLayer) {
       maxLayer = layerNode;
     }
