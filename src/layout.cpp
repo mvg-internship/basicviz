@@ -13,10 +13,8 @@
 #include <cassert>
 #include <map>
 
-bool algorithmDFS(
-    const TreeNode &node,
-    std::vector<TreeNode> &nodes,
-    std::vector<bool> &usedId) {
+bool algorithmDFS(const TreeNode &node, std::vector<TreeNode> &nodes,
+                  std::vector<bool> &usedId) {
   usedId[node.id] = true;
   for (TreeNode::Id succId : node.succ) {
     if (usedId[succId]) {
@@ -53,10 +51,8 @@ struct EdgeCount {
   int degIn = 0;
 };
 
-void removeEdgeCount(
-    int i,
-    std::vector<EdgeCount> &edgeCounts,
-    std::vector<TreeNode> &nodes) {
+void removeEdgeCount(int i, std::vector<EdgeCount> &edgeCounts,
+                     std::vector<TreeNode> &nodes) {
   const TreeNode &node = nodes[i];
   for (TreeNode::Id id : node.succ) {
     edgeCounts[id].degIn--;
@@ -73,10 +69,9 @@ bool comparatorId(TreeNode &first, TreeNode &second) {
   return first.id < second.id;
 }
 
-size_t dispatchSinks(
-    std::vector<TreeNode> &nodes,
-    std::vector<EdgeCount> &edgeCounts,
-    std::vector<TreeNode::Id> &s2) {
+size_t dispatchSinks(std::vector<TreeNode> &nodes,
+                     std::vector<EdgeCount> &edgeCounts,
+                     std::vector<TreeNode::Id> &s2) {
   size_t decrlenNodes = 0;
   for (size_t i = 0; i < edgeCounts.size();) {
     if (edgeCounts[i].degOut == 0) {
@@ -92,10 +87,9 @@ size_t dispatchSinks(
   return decrlenNodes;
 }
 
-size_t dispatchSources(
-    std::vector<TreeNode> &nodes,
-    std::vector<EdgeCount> &edgeCounts,
-    std::vector<TreeNode::Id> &s1) {
+size_t dispatchSources(std::vector<TreeNode> &nodes,
+                       std::vector<EdgeCount> &edgeCounts,
+                       std::vector<TreeNode::Id> &s1) {
   size_t decrlenNodes = 0;
   for (size_t i = 0; i < edgeCounts.size();) {
     if (edgeCounts[i].degIn == 0) {
@@ -181,9 +175,7 @@ void greedyFAS(
 }
 
 // Assigning a layer and numbers in this layer for each vertex of the graph
-void algorithmASAP(
-    std::vector<TreeNode> &nodes,
-    std::vector<int> &lensLayer) {
+void algorithmASAP(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer) {
   std::vector<int> removedNodes(nodes.size(), -1);
 
   std::vector<int> degInNodes;
@@ -219,12 +211,8 @@ void algorithmASAP(
   }
 }
 
-void addLineSegment(
-    std::vector<TreeNode> &nodes,
-    std::vector<int> &lensLayer,
-    size_t idStart,
-    size_t idEnd,
-    bool isDownward) {
+void addLineSegment(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer,
+                    size_t idStart, size_t idEnd, bool isDownward) {
   int order;
   if (isDownward) {
     order = 1;
@@ -266,9 +254,7 @@ void addLineSegment(
   }
 }
 
-bool addDummyNodes(
-    std::vector<TreeNode> &nodes,
-    std::vector<int> &lensLayer) {
+bool addDummyNodes(std::vector<TreeNode> &nodes, std::vector<int> &lensLayer) {
   for (TreeNode &node : nodes) {
     for (size_t j = 0; j < node.succ.size(); j++) {
       int distance = nodes[node.succ[j]].layer - node.layer;
@@ -281,9 +267,8 @@ bool addDummyNodes(
   return true;
 }
 
-void addAllDummyNodes(
-    std::vector<TreeNode> &nodes,
-    std::vector<int> &lensLayer) {
+void addAllDummyNodes(std::vector<TreeNode> &nodes,
+                      std::vector<int> &lensLayer) {
   bool allDummysAdded = false;
   while (!allDummysAdded) {
     allDummysAdded = addDummyNodes(nodes, lensLayer);
@@ -353,7 +338,8 @@ void getIdOrderPred(std::vector<TreeNode> &nodes,
                     std::vector<TreeNode::Id> &sourcesNodes) {
   std::vector<std::pair<TreeNode::Id, size_t>> pi = {};
   for (TreeNode &node : nodes) {
-    if (std::find(sourcesNodes.begin(), sourcesNodes.end(), node.id) == sourcesNodes.end()) {
+    if (std::find(sourcesNodes.begin(), sourcesNodes.end(), node.id) ==
+        sourcesNodes.end()) {
       auto idAndPred = std::make_pair(node.id, node.pred.size());
       pi.push_back(idAndPred);
     }
@@ -392,18 +378,16 @@ bool allSuccInPrevLayers(std::vector<TreeNode> &nodes,
   return allSuccInPrevLayers;
 }
 
-void algorithmCoffmanGraham(
-    std::vector<TreeNode> &nodes,
-    std::vector<TreeNode::Id> &sourcesNodes,
-    std::vector<int> &lensLayer, 
-    size_t w) {
+void algorithmCoffmanGraham(std::vector<TreeNode> &nodes,
+                            std::vector<TreeNode::Id> &sourcesNodes,
+                            std::vector<int> &lensLayer, size_t w) {
   std::vector<TreeNode::Id> orderedId = {};
   getIdOrderPred(nodes, orderedId, sourcesNodes);
-	
+
   std::vector<std::vector<TreeNode::Id>> prevLayers = {};
   size_t countLayers = 0;
   std::vector<TreeNode::Id> currentLayer = {};
-  
+
   std::vector<bool> nodesInCurrentLayer = {};
   nodesInCurrentLayer.resize(nodes.size(), false);
 
@@ -416,19 +400,19 @@ void algorithmCoffmanGraham(
   while (placedCount < nodes.size() - sourcesNodes.size()) {
     TreeNode::Id selectedId;
     selectIdAllSuccPlaced(selectedId, nodesUnplacedSucc, orderedId);
-    
+
     if (currentLayer.size() < w &&
         allSuccInPrevLayers(nodes, nodesInCurrentLayer, selectedId)) {
       currentLayer.push_back(selectedId);
-      
+
       nodesInCurrentLayer[selectedId] = true;
     } else {
       prevLayers.push_back(currentLayer);
       countLayers++;
-      
+
       currentLayer = {};
       currentLayer.push_back(selectedId);
-      
+
       nodesInCurrentLayer = {};
       nodesInCurrentLayer.resize(nodes.size(), false);
       nodesInCurrentLayer[selectedId] = true;
@@ -445,7 +429,7 @@ void algorithmCoffmanGraham(
   }
   prevLayers.push_back(currentLayer);
   countLayers++;
-  
+
   currentLayer = {};
   for (TreeNode::Id sourceId : sourcesNodes) {
     currentLayer.push_back(sourceId);
@@ -457,15 +441,15 @@ void algorithmCoffmanGraham(
   for (TreeNode &node : nodes) {
     node.layer = static_cast<int>(prevLayers.size()) - node.layer - 1;
   }
-  
+
   lensLayer = {};
   for (size_t i = 0; i < prevLayers.size(); i++) {
-    lensLayer.push_back(static_cast<int>(prevLayers[prevLayers.size() - i - 1].size()));
+    lensLayer.push_back(
+        static_cast<int>(prevLayers[prevLayers.size() - i - 1].size()));
   }
 }
 
-bool checkingNodesId(std::vector<TreeNode> &nodes, 
-                     size_t oldCountNodes) {
+bool checkingNodesId(std::vector<TreeNode> &nodes, size_t oldCountNodes) {
   if (nodes.size() != oldCountNodes) {
     return false;
   }
@@ -478,7 +462,7 @@ bool checkingNodesId(std::vector<TreeNode> &nodes,
 }
 
 bool checkingConnection(
-    std::vector<TreeNode> &nodes, 
+    std::vector<TreeNode> &nodes,
     std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &oldConnections) {
   size_t countNewConnections = 0;
   for (TreeNode &node : nodes) {
@@ -488,10 +472,10 @@ bool checkingConnection(
     return false;
   }
   for (auto [src, dst] : oldConnections) {
-    if (std::find(nodes[src].succ.begin(), nodes[src].succ.end(), dst) 
-        == nodes[src].succ.end() ||
-        std::find(nodes[dst].pred.begin(), nodes[dst].pred.end(), src) 
-        == nodes[dst].pred.end()) {
+    if (std::find(nodes[src].succ.begin(), nodes[src].succ.end(), dst) ==
+            nodes[src].succ.end() ||
+        std::find(nodes[dst].pred.begin(), nodes[dst].pred.end(), src) ==
+            nodes[dst].pred.end()) {
       return false;
     }
   }
@@ -519,10 +503,10 @@ bool checkingWidthLimit(std::vector<TreeNode> &nodes, size_t width) {
 }
 
 bool checkingCoordinates(
-    std::vector<TreeNode> &nodes, 
+    std::vector<TreeNode> &nodes,
     std::vector<std::pair<int, int>> &manuallyCoordinates) {
   for (size_t i = 0; i < nodes.size(); i++) {
-    if (nodes[i].layer != manuallyCoordinates[i].first || 
+    if (nodes[i].layer != manuallyCoordinates[i].first ||
         nodes[i].number != manuallyCoordinates[i].second) {
       return false;
     }
@@ -531,9 +515,7 @@ bool checkingCoordinates(
 }
 
 bool nodesPlacedCorrectly(
-    std::vector<TreeNode> &nodes, 
-    size_t width,
-    size_t oldCountNodes,
+    std::vector<TreeNode> &nodes, size_t width, size_t oldCountNodes,
     std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &oldConnections,
     std::vector<std::pair<int, int>> &manuallyCoordinates) {
   if (!checkingNodesId(nodes, oldCountNodes)) {
@@ -567,19 +549,17 @@ TreeNode::Id traceDummyNode(TreeNode::Id id,
   return id;
 }
 
-void reverseNode(
-    std::vector<TreeNode> &nodes,
-    TreeNode::Id src, 
-    TreeNode::Id dst) {
+void reverseNode(std::vector<TreeNode> &nodes, TreeNode::Id src,
+                 TreeNode::Id dst) {
   nodes[src].pred.push_back(dst);
   nodes[src].succ.erase(
-    std::remove(nodes[src].succ.begin(), nodes[src].succ.end(), dst), 
-    nodes[src].succ.end()); 
-        
+      std::remove(nodes[src].succ.begin(), nodes[src].succ.end(), dst),
+      nodes[src].succ.end());
+
   nodes[dst].succ.push_back(src);
   nodes[dst].pred.erase(
-    std::remove(nodes[dst].pred.begin(), nodes[dst].pred.end(), src), 
-    nodes[dst].pred.end());
+      std::remove(nodes[dst].pred.begin(), nodes[dst].pred.end(), src),
+      nodes[dst].pred.end());
 }
 
 void reverseBackwardEdges(
@@ -587,16 +567,16 @@ void reverseBackwardEdges(
     std::vector<std::pair<TreeNode::Id, TreeNode::Id>> &deletedEdges) {
   for (auto [src, dst] : deletedEdges) {
     bool isLong = true;
-    if (std::find(nodes[src].succ.begin(), nodes[src].succ.end(), dst)
-        != nodes[src].succ.end()) {
+    if (std::find(nodes[src].succ.begin(), nodes[src].succ.end(), dst) !=
+        nodes[src].succ.end()) {
       isLong = false;
     }
     if (!isLong) {
       reverseNode(nodes, src, dst);
-        
+
       continue;
     }
-    
+
     size_t firstDummyId;
     for (size_t succId : nodes[src].succ) {
       if (nodes[succId].isDummy) {
@@ -606,7 +586,7 @@ void reverseBackwardEdges(
         }
       }
     }
-    
+
     size_t prevId = src, nextDummyId = firstDummyId;
     while (nodes[nextDummyId].isDummy) {
       size_t tmpId = nodes[nextDummyId].succ[0];
@@ -618,27 +598,27 @@ void reverseBackwardEdges(
   }
 }
 
-int promoteNode(
-    std::vector<TreeNode> &nodes,
-    std::vector<int> &layering,
-    size_t id) {
-    int dummyDiff = 0;
-    for (TreeNode::Id predId : nodes[id].pred) {
-      if (layering[predId] == layering[id] - 1) {
-        dummyDiff += promoteNode(nodes, layering, predId);
-      }
+int promoteNode(std::vector<TreeNode> &nodes, std::vector<int> &layering,
+                bool &flagSource, size_t id) {
+  if (nodes[id].pred.empty() || flagSource) {
+    flagSource = true;
+    return 0;
+  }
+  int dummyDiff = 0;
+  for (TreeNode::Id predId : nodes[id].pred) {
+    if (layering[predId] == layering[id] - 1) {
+      dummyDiff += promoteNode(nodes, layering, flagSource, predId);
     }
-    layering[id] -= 1;
-    if (layering[id] < 1) {
-      dummyDiff += 10000;
-    }
-    dummyDiff += nodes[id].succ.size() - nodes[id].pred.size();
-    return dummyDiff;
+  }
+
+  layering[id]--;
+
+  dummyDiff += nodes[id].succ.size() - nodes[id].pred.size();
+  return dummyDiff;
 }
 
-void layeringPromotion(
-    std::vector<TreeNode> &nodes,
-    std::vector<int> &lensLayer) {
+void layeringPromotion(std::vector<TreeNode> &nodes,
+                       std::vector<int> &lensLayer) {
   std::vector<int> layering = {};
   for (TreeNode &node : nodes) {
     layering.push_back(node.layer);
@@ -649,7 +629,8 @@ void layeringPromotion(
     promotions = 0;
     for (size_t id = 0; id < nodes.size(); id++) {
       if (nodes[id].pred.size() > 0) {
-        if (promoteNode(nodes, layering, id) < 0) {
+        bool flagSource = false;
+        if (promoteNode(nodes, layering, flagSource, id) < 0 && !flagSource) {
           layeringBackUp = layering;
           promotions++;
         } else {
@@ -658,25 +639,34 @@ void layeringPromotion(
       }
     }
   }
-  
+
+  int minLayer = 1;
+  for (int layerNode : layering) {
+    if (layerNode < minLayer) {
+      minLayer = layerNode;
+    }
+  }
+
   int maxLayer = 0;
   for (int &layerNode : layering) {
+    layerNode -= minLayer;
     if (layerNode > maxLayer) {
       maxLayer = layerNode;
     }
   }
+
   lensLayer = {};
   for (int i = 0; i <= maxLayer; i++) {
     int lenLayer = 0;
     lensLayer.push_back(lenLayer);
   }
-  
+
   for (size_t id = 0; id < nodes.size(); id++) {
     nodes[id].layer = layering[id];
     nodes[id].number = lensLayer[nodes[id].layer];
     lensLayer[nodes[id].layer]++;
   }
-  
+
   for (size_t i = 0; i < lensLayer.size(); i++) {
     if (lensLayer[i] == 0) {
       for (size_t j = i; j < lensLayer.size() - 1; j++) {
@@ -701,12 +691,12 @@ void Net::assignLayers(size_t widthLimitation, bool testNodesPlacement) {
       sourcesNodes.push_back(node.id);
     }
   }
-  
+
   std::vector<std::pair<TreeNode::Id, TreeNode::Id>> deletedEdges = {};
   greedyFAS(nodes, deletedEdges);
-  
+
   std::vector<int> lensLayer = {};
-  
+
   if (testNodesPlacement) {
     size_t oldCountNodes = nodes.size();
     std::vector<std::pair<TreeNode::Id, TreeNode::Id>> oldConnections = {};
@@ -717,14 +707,11 @@ void Net::assignLayers(size_t widthLimitation, bool testNodesPlacement) {
       }
     }
     std::vector<std::pair<int, int>> manuallyCoordinates = {};
-    
+
     algorithmCoffmanGraham(nodes, sourcesNodes, lensLayer, widthLimitation);
-  
-    if (nodesPlacedCorrectly(nodes, 
-                             widthLimitation, 
-                             oldCountNodes, 
-                             oldConnections, 
-                             manuallyCoordinates)) {
+
+    if (nodesPlacedCorrectly(nodes, widthLimitation, oldCountNodes,
+                             oldConnections, manuallyCoordinates)) {
       printf("\nSuccess: Nodes are plased correctly\n");
     } else {
       printf("\nFail\n");
@@ -732,21 +719,22 @@ void Net::assignLayers(size_t widthLimitation, bool testNodesPlacement) {
   } else {
     algorithmCoffmanGraham(nodes, sourcesNodes, lensLayer, widthLimitation);
   }
-  
+
   for (auto [src, dst] : deletedEdges) {
     nodes[src].succ.push_back(dst);
     nodes[dst].pred.push_back(src);
   }
+
   reverseBackwardEdges(nodes, deletedEdges);
   for (std::pair<TreeNode::Id, TreeNode::Id> &pair : deletedEdges) {
     std::swap(pair.first, pair.second);
   }
-  
+
   layeringPromotion(nodes, lensLayer);
-  
-  addAllDummyNodes(nodes, lensLayer);
-  
+
   reverseBackwardEdges(nodes, deletedEdges);
+
+  addAllDummyNodes(nodes, lensLayer);
 }
 
 enum {
