@@ -30,15 +30,15 @@ public:
   }
 
   virtual void on_input(const std::string &name) const override {
-    UNUSED(getNode(name));
+    UNUSED(getNode(name, INPUT));
   }
 
   virtual void on_output(const std::string &name) const override {
-    UNUSED(getNode(name));
+    UNUSED(getNode(name, OUTPUT));
   }
 
   virtual void on_dff_input(const std::string &input) const override {
-    UNUSED(getNode(input));
+    UNUSED(getNode(input, DFF));
   }
 
   virtual void on_dff(
@@ -50,9 +50,19 @@ public:
       const std::vector<std::string> &inputs,
       const std::string &output,
       const std::string &type) const override {
-    UNUSED(type);
-
-    TreeNode *dst = getNode(output);
+    Type numType = NONE;
+    if (type == "NOT") {
+      numType = NOT;
+    } else if (type == "AND") {
+      numType = AND;
+    } else if (type == "OR") {
+      numType = OR;
+    } else if (type == "NAND") {
+      numType = NAND;
+    } else if (type == "NOR") {
+      numType = NOR;
+    }
+    TreeNode *dst = getNode(output, numType);
     for (const std::string &input: inputs) {
       linkNodes(getNode(input), dst);
     }
@@ -69,14 +79,14 @@ private:
     dst->pred.push_back(src->id);
   }
 
-  TreeNode *getNode(const std::string &name) const {
+  TreeNode *getNode(const std::string &name, Type type = NONE) const {
     Net::Id id;
 
     auto it = nodeMap.find(name);
     if (it != nodeMap.end()) {
       id = it->second;
     } else {
-      id = net.addNode();
+      id = net.addNode(type);
       nodeMap.emplace(name, id);
     }
     return net.getNode(id);
