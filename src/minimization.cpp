@@ -127,7 +127,7 @@ int AdditionalNetFeatures::crossCounting() {
   for (size_t i = 0; i < netEdges.size(); ++i) {
     std::sort(netEdges[i].begin(), netEdges[i].end(), lexicographicSortCondition);
 
-    const int numLeaves = nearestPow2(netEdges[i].size());
+    const int numLeaves = nearestPow2(nodesByLayer[i + 1].size());
     const int firstLeafIndex = numLeaves - 1;
     const int treeSize = numLeaves * 2 - 1;
 
@@ -136,6 +136,9 @@ int AdditionalNetFeatures::crossCounting() {
 
     for (size_t k = 0; k < netEdges[i].size(); k++) {
       int index = netEdges[i][k].second -> number + firstLeafIndex;
+      // if (index > accTree.size()) {
+      //   printf("Out of size\n");
+      // }
       ++accTree[index];
       while (index > 0) {
         if (index % 2)
