@@ -599,7 +599,7 @@ void reverseBackwardEdges(
 }
 
 int promoteNode(std::vector<TreeNode> &nodes, std::vector<int> &layering,
-                bool &flagSource, size_t id) {
+                std::vector<bool> &shiftId, bool &flagSource, size_t id) {
   if (nodes[id].pred.empty() || flagSource) {
     flagSource = true;
     return 0;
@@ -607,66 +607,17 @@ int promoteNode(std::vector<TreeNode> &nodes, std::vector<int> &layering,
   int dummyDiff = 0;
   for (TreeNode::Id predId : nodes[id].pred) {
     if (layering[predId] == layering[id] - 1) {
-      dummyDiff += promoteNode(nodes, layering, flagSource, predId);
+      dummyDiff += promoteNode(nodes, layering, shiftId, flagSource, predId);
     }
   }
 
-  layering[id]--;
+  shiftId[id] = true;
 
   dummyDiff += nodes[id].succ.size() - nodes[id].pred.size();
   return dummyDiff;
 }
-
-void layeringPromotion(std::vector<TreeNode> &nodes,
+void removeEmptyLayers(std::vector<TreeNode> &nodes,
                        std::vector<int> &lensLayer) {
-  std::vector<int> layering = {};
-  for (TreeNode &node : nodes) {
-    layering.push_back(node.layer);
-  }
-  std::vector<int> layeringBackUp = layering;
-  size_t promotions = 1;
-  while (promotions != 0) {
-    promotions = 0;
-    for (size_t id = 0; id < nodes.size(); id++) {
-      if (nodes[id].pred.size() > 0) {
-        bool flagSource = false;
-        if (promoteNode(nodes, layering, flagSource, id) < 0 && !flagSource) {
-          layeringBackUp = layering;
-          promotions++;
-        } else {
-          layering = layeringBackUp;
-        }
-      }
-    }
-  }
-
-  int minLayer = 1;
-  for (int layerNode : layering) {
-    if (layerNode < minLayer) {
-      minLayer = layerNode;
-    }
-  }
-
-  int maxLayer = 0;
-  for (int &layerNode : layering) {
-    layerNode -= minLayer;
-    if (layerNode > maxLayer) {
-      maxLayer = layerNode;
-    }
-  }
-
-  lensLayer = {};
-  for (int i = 0; i <= maxLayer; i++) {
-    int lenLayer = 0;
-    lensLayer.push_back(lenLayer);
-  }
-
-  for (size_t id = 0; id < nodes.size(); id++) {
-    nodes[id].layer = layering[id];
-    nodes[id].number = lensLayer[nodes[id].layer];
-    lensLayer[nodes[id].layer]++;
-  }
-
   for (size_t i = 0; i < lensLayer.size(); i++) {
     if (lensLayer[i] == 0) {
       for (size_t j = i; j < lensLayer.size() - 1; j++) {
@@ -681,6 +632,50 @@ void layeringPromotion(std::vector<TreeNode> &nodes,
       i--;
     }
   }
+}
+
+void layeringPromotion(std::vector<TreeNode> &nodes,
+                       std::vector<int> &lensLayer) {
+  std::vector<int> layering = {};
+  for (TreeNode &node : nodes) {
+    layering.push_back(node.layer);
+  }
+  std::vector<bool> shiftId = {};
+  size_t promotions = 1;
+  while (promotions != 0) {
+    promotions = 0;
+    for (TreeNode &node : nodes) {
+      if (node.pred.size() > 0) {
+        bool flagSource = false;
+        shiftId = {};
+        shiftId.resize(nodes.size(), false);
+        if (promoteNode(nodes, layering, shiftId, flagSource, node.id) < 0 &&
+            !flagSource) {
+          for (size_t i = 0; i < shiftId.size(); i++) {
+            if (shiftId[i] == true) {
+              layering[i]--;
+            }
+          }
+          promotions++;
+        }
+      }
+    }
+  }
+
+  int minLayer = *std::min_element(layering.begin(), layering.end());
+  int maxLayer = *std::max_element(layering.begin(), layering.end());
+  maxLayer -= minLayer;
+
+  lensLayer = {};
+  lensLayer.resize(maxLayer + 1, 0);
+
+  for (size_t id = 0; id < nodes.size(); id++) {
+    nodes[id].layer = layering[id];
+    nodes[id].number = lensLayer[nodes[id].layer];
+    lensLayer[nodes[id].layer]++;
+  }
+
+  removeEmptyLayers(nodes, lensLayer);
 }
 
 // Assigning a layer and a number, introducing dummy vertices
