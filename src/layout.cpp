@@ -599,7 +599,7 @@ void reverseBackwardEdges(
 }
 
 int promoteNode(std::vector<TreeNode> &nodes, std::vector<int> &layering,
-                std::vector<bool> &shiftId, bool &flagSource, size_t id) {
+                std::vector<size_t> &shiftId, bool &flagSource, size_t id) {
   if (nodes[id].pred.empty() || flagSource) {
     flagSource = true;
     return 0;
@@ -611,11 +611,12 @@ int promoteNode(std::vector<TreeNode> &nodes, std::vector<int> &layering,
     }
   }
 
-  shiftId[id] = true;
+  shiftId.push_back(id);
 
   dummyDiff += nodes[id].succ.size() - nodes[id].pred.size();
   return dummyDiff;
 }
+
 void removeEmptyLayers(std::vector<TreeNode> &nodes,
                        std::vector<int> &lensLayer) {
   for (size_t i = 0; i < lensLayer.size(); i++) {
@@ -640,7 +641,7 @@ void layeringPromotion(std::vector<TreeNode> &nodes,
   for (TreeNode &node : nodes) {
     layering.push_back(node.layer);
   }
-  std::vector<bool> shiftId = {};
+  std::vector<size_t> shiftId = {};
   size_t promotions = 1;
   while (promotions != 0) {
     promotions = 0;
@@ -648,13 +649,10 @@ void layeringPromotion(std::vector<TreeNode> &nodes,
       if (node.pred.size() > 0) {
         bool flagSource = false;
         shiftId = {};
-        shiftId.resize(nodes.size(), false);
         if (promoteNode(nodes, layering, shiftId, flagSource, node.id) < 0 &&
             !flagSource) {
-          for (size_t i = 0; i < shiftId.size(); i++) {
-            if (shiftId[i] == true) {
-              layering[i]--;
-            }
+          for (size_t id : shiftId) {
+            layering[id]--;
           }
           promotions++;
         }
