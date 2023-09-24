@@ -619,18 +619,23 @@ int promoteNode(std::vector<TreeNode> &nodes, std::vector<int> &layering,
 
 void removeEmptyLayers(std::vector<TreeNode> &nodes,
                        std::vector<int> &lensLayer) {
-  for (size_t i = 0; i < lensLayer.size(); i++) {
+  std::vector<int> layerDiff;
+  layerDiff.resize(lensLayer.size(), 0);
+
+  int d = 0;
+  for (size_t i = 0; i < lensLayer.size(); ++i) {
     if (lensLayer[i] == 0) {
-      for (size_t j = i; j < lensLayer.size() - 1; j++) {
-        lensLayer[j] = lensLayer[j + 1];
-        for (TreeNode &node : nodes) {
-          if (node.layer == j + 1) {
-            node.layer--;
-          }
-        }
-      }
-      lensLayer.erase(lensLayer.end() - 1);
-      i--;
+      ++d;
+    } else {
+      layerDiff[i] = d;
+    }
+  }
+
+  if (d > 0) {
+    lensLayer.erase(std::remove(lensLayer.begin(), lensLayer.end(), 0),
+                    lensLayer.end());
+    for (TreeNode &node : nodes) {
+      node.layer -= layerDiff[node.layer];
     }
   }
 }
